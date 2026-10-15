@@ -1,0 +1,5 @@
+# Los módulos VBA deben conservarse en Windows-1252 con saltos CRLF
+# (es lo que espera el editor de VBA al importar). No convertir.
+*.bas -text diff
+*.cls -text diff
+*.frm -text diff
