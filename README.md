@@ -5,6 +5,11 @@ Macros de Excel que se conectan a **HCL Notes** (antes Lotus Notes) para:
 - 📥 **Leer la Bandeja de entrada** y volcarla en una hoja: Fecha, Remitente, Asunto, extracto del cuerpo y nº de adjuntos.
 - 📤 **Enviar correos** (Para, CC, Asunto, Cuerpo y adjuntos opcionales) a partir de las filas de una hoja.
 - 📎 **Guardar los adjuntos** de los correos leídos en una carpeta de tu PC.
+- 📁 **Gestionar carpetas**: ver el árbol de carpetas, crear carpetas y subcarpetas, renombrarlas y eliminarlas.
+- ↪️ **Mover y copiar correos** a tus carpetas eligiendo el destino en un desplegable.
+- 📂 **Leer carpetas completas** (con sus subcarpetas) y **buscar** en todo el buzón por texto, remitente y fechas.
+- 🤖 **Reglas de archivado**: mueve automáticamente los correos de la Bandeja de entrada según el remitente, el asunto…
+- ✉️ **Marcar como leído / no leído**.
 
 El código está muy comentado en español y pensado para quien empieza con VBA.
 
@@ -30,9 +35,13 @@ El código está muy comentado en español y pensado para quien empieza con VBA.
 vba/
 ├── modConfiguracion.bas   ← valores que puedes cambiar (nombres de hojas, nº de correos…)
 ├── modNotesConexion.bas   ← conexión con Notes, contraseña y mensajes de error
-├── modLeerCorreo.bas      ← macro LeerBandejaEntrada
+├── modLeerCorreo.bas      ← macro LeerBandejaEntrada (y el "motor" de lectura)
 ├── modEnviarCorreo.bas    ← macro EnviarCorreos (y la función EnviarUnCorreo)
-├── modAdjuntos.bas        ← macro GuardarAdjuntos
+├── modAdjuntos.bas        ← macros GuardarAdjuntos y GuardarAdjuntosCarpeta
+├── modCarpetas.bas        ← árbol de carpetas: actualizar, crear, renombrar, eliminar
+├── modMoverCorreo.bas     ← mover / copiar correos, marcar leído / no leído
+├── modBuscar.bas          ← leer una carpeta completa y buscar correos
+├── modReglas.bas          ← reglas de archivado automático
 └── modPreparar.bas        ← macro PrepararLibro (crea hojas y botones)
 ```
 
@@ -56,8 +65,8 @@ a mano desde la web, las tildes podrían verse mal; es mejor importar los `.bas`
 2. Pulsa **Alt + F11** para abrir el editor de VBA.
 3. En el menú: **Archivo > Importar archivo…** (o *File > Import File…*).
 4. Selecciona `modConfiguracion.bas` y pulsa **Abrir**.
-5. Repite el paso 3–4 con **cada uno** de los 6 archivos `.bas` de la carpeta `vba`.
-6. En el panel izquierdo (*Explorador de proyectos*) verás una carpeta **Módulos** con los 6 módulos.
+5. Repite el paso 3–4 con **cada uno** de los 10 archivos `.bas` de la carpeta `vba`.
+6. En el panel izquierdo (*Explorador de proyectos*) verás una carpeta **Módulos** con los 10 módulos.
 7. *(Recomendado)* Menú **Depuración > Compilar VBAProject**. Si no sale ningún mensaje, todo está bien.
 
 ### 3.3 Guardar como libro con macros (.xlsm)
@@ -71,8 +80,12 @@ a mano desde la web, las tildes podrían verse mal; es mejor importar los `.bas`
 
 1. Pulsa **Alt + F8**, elige **PrepararLibro** y pulsa **Ejecutar**.
 2. Se crearán:
-   - La hoja **Bandeja** con sus encabezados y los botones *Leer bandeja de entrada*, *Guardar adjuntos*, *Enviar correos* y *Conectar a Notes*.
-   - La hoja **Enviar** con sus encabezados, una fila de ejemplo y los botones *Enviar correos* y *Conectar a Notes*.
+   - **Bandeja**: correos leídos. Botones *Leer bandeja de entrada*, *Mover a carpeta*, *Copiar a carpeta*, *Marcar como leído*, *Marcar como no leído*, *Guardar adjuntos*, *Enviar correos* y *Conectar a Notes*.
+   - **Enviar**: correos para enviar, con una fila de ejemplo. Botones *Enviar correos* y *Conectar a Notes*.
+   - **Carpetas**: tu árbol de carpetas. Botones *Actualizar carpetas*, *Leer carpeta*, *Crear carpeta / subcarpeta*, *Renombrar carpeta*, *Eliminar carpeta*, *Crear carpetas de la lista*, *Guardar adjuntos de la carpeta* y *Conectar a Notes*.
+   - **Buscar**: criterios de búsqueda. Botones *Buscar*, *Limpiar criterios* y *Conectar a Notes*.
+   - **Reglas**: reglas de archivado, con una regla de ejemplo desactivada. Botones *Aplicar reglas a la Bandeja* y *Conectar a Notes*.
+   - **Listas** (oculta): las opciones de los desplegables. No la borres.
 3. Guarda el libro (**Ctrl + G** / **Ctrl + S**).
 
 <details>
@@ -96,10 +109,11 @@ a mano desde la web, las tildes podrían verse mal; es mejor importar los `.bas`
    - Si no, te pedirá la **contraseña de Notes** (en una ventana de Notes o de Excel).
 3. Se mostrarán los **100 correos más recientes** (cambia `MAX_CORREOS` en `modConfiguracion` si quieres más o menos).
 
-| A Fecha | B Remitente | C Asunto | D Extracto del cuerpo | E Nº adjuntos | F ID (no tocar) |
-|---|---|---|---|---|---|
+| A Fecha | B Remitente | C Asunto | D Extracto | E Nº adjuntos | F ID (no tocar) | G Carpeta | H Leído | I Mover a | J Resultado |
+|---|---|---|---|---|---|---|---|---|---|
 
-> La columna **F** guarda un identificador interno del correo. La necesita la macro de guardar adjuntos: no la borres.
+> La columna **F** guarda un identificador interno del correo. La necesitan las macros de adjuntos, mover y marcar: no la borres.
+> La columna **G** indica en qué carpeta está el correo (la usa *Mover* para saber de dónde sacarlo).
 
 ### 4.2 Enviar correos
 
@@ -163,14 +177,95 @@ End Sub
 ```
 </details>
 
-### 4.5 Actualizar desde una versión anterior
+### 4.5 Carpetas (hoja «Carpetas»)
 
-Si ya tenías el libro montado con el botón antiguo *Desconectar de Notes*:
+Pulsa **Actualizar carpetas**. La hoja muestra tu árbol de carpetas: las subcarpetas aparecen **con sangría** debajo de su carpeta.
 
-1. **Alt + F11**. En el panel izquierdo, clic derecho en **modConfiguracion**, **modNotesConexion** y **modPreparar** > *Quitar…* > **No** (no hace falta exportarlos).
-2. **Archivo > Importar archivo** y vuelve a importar esos tres `.bas`.
+| A Carpeta | B Ruta completa | C Nº correos | D No leídos | E Tipo |
+|---|---|---|---|---|
+| Bandeja de entrada | Bandeja de entrada | 120 | 5 | Sistema |
+| **Clientes** | Clientes | 3 | 0 | Carpeta |
+| &nbsp;&nbsp;&nbsp;&nbsp;Acme | Clientes\Acme | 40 | 2 | Carpeta |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2026 | Clientes\Acme\2026 | 8 | 1 | Carpeta |
+
+- En Notes las subcarpetas se escriben con `\`: `Clientes\Acme\2026` es la carpeta *2026* dentro de *Acme* dentro de *Clientes*.
+- **Agrupación** = un «padre» que Notes muestra pero que no existe como carpeta (por ejemplo, existe `Clientes\Acme` pero no `Clientes`).
+- *No leídos* puede salir vacío en versiones antiguas de Notes.
+
+Para usar los botones, **primero haz clic en la fila de la carpeta**:
+
+| Botón | Qué hace |
+|---|---|
+| **Leer carpeta** | Copia sus correos a la hoja *Bandeja*. Pregunta si incluir las **subcarpetas** y si quieres solo los **últimos N días**. Máximo `MAX_CORREOS_CARPETA` (500). |
+| **Crear carpeta / subcarpeta** | Crea una carpeta **dentro de la seleccionada**. Sin selección, la crea en el primer nivel. Puedes crear varios niveles de golpe: `Facturas\2026`. |
+| **Renombrar carpeta** | Cambia el nombre. Sus subcarpetas la siguen. Los correos no se tocan. |
+| **Eliminar carpeta** | Elimina la carpeta **y sus subcarpetas**. Antes te pregunta si quieres pasar sus correos a la Bandeja de entrada y te pide una segunda confirmación. **Los correos nunca se borran**: si no los pasas a la Bandeja, siguen en la vista *Todos los documentos* de Notes. |
+| **Crear carpetas de la lista** | Escribe en la **columna G** una ruta por fila (`Clientes\Acme`, `Clientes\Acme\2026`…) y pulsa: las crea todas y escribe el resultado en la columna H. |
+| **Guardar adjuntos de la carpeta** | Guarda en tu PC los adjuntos de todos los correos de la carpeta (y, si quieres, de sus subcarpetas) **recreando la misma estructura de carpetas**: `C:\Destino\Clientes\Acme\2026\factura.pdf`. |
+
+> «Bandeja de entrada» y «Enviados» son carpetas del sistema: se pueden leer, pero no renombrar, eliminar ni tener subcarpetas.
+
+### 4.6 Mover y copiar correos (hoja «Bandeja»)
+
+1. Lee la bandeja, una carpeta o haz una búsqueda: los correos aparecen en la hoja *Bandeja*.
+2. En la columna **I «Mover a»** (encabezado naranja) haz clic en la celda y **elige la carpeta en el desplegable**. Hazlo en todas las filas que quieras.
+3. Pulsa:
+   - **Mover a carpeta**: el correo pasa a la carpeta elegida y **sale** de la carpeta en la que estaba (columna G).
+   - **Copiar a carpeta**: el correo se añade a la carpeta elegida y **sigue también** en la suya (en Notes un correo puede estar en varias carpetas).
+4. La columna **J «Resultado»** dice qué ha pasado con cada fila (verde = bien, rojo = error).
+
+> Si creas una carpeta nueva y no aparece en el desplegable, pulsa **Actualizar carpetas** en la hoja *Carpetas*.
+
+### 4.7 Marcar como leído / no leído
+
+Selecciona las filas en la hoja *Bandeja* (puedes usar **Ctrl + clic** o **Mayús + clic**) y pulsa **Marcar como leído** o **Marcar como no leído**. La columna **H «Leído»** se actualiza. Necesita HCL Notes 8 o superior.
+
+### 4.8 Buscar correos (hoja «Buscar»)
+
+Rellena solo los criterios que quieras (celdas amarillas) y pulsa **Buscar**:
+
+| Criterio | Ejemplo | Nota |
+|---|---|---|
+| Texto (en asunto o cuerpo) | `presupuesto` | No distingue mayúsculas. |
+| Remitente contiene | `acme.com` o `Juan` | Vale el nombre o la dirección. |
+| Desde / Hasta (fecha) | `01/01/2026` | Las dos incluidas. |
+| Carpeta | *(desplegable)* | **Vacía = busca en todas**: Bandeja de entrada, Enviados y todas tus carpetas. |
+| Incluir subcarpetas | `Sí` / `No` | Solo cuenta si eliges una carpeta. |
+
+Los resultados aparecen en la hoja *Bandeja* (máximo `MAX_CORREOS_CARPETA`), ordenados del más reciente al más antiguo, y desde ahí puedes moverlos, copiarlos, marcarlos o guardar sus adjuntos. **Limpiar criterios** vacía las celdas.
+
+> Buscar texto dentro del **cuerpo** de miles de correos puede tardar varios minutos. La barra de estado de Excel (abajo) muestra el progreso.
+
+### 4.9 Reglas de archivado automático (hoja «Reglas»)
+
+Cada fila es una regla:
+
+| A Buscar en | B Contiene | C Mover a carpeta | D Activa | E Resultado |
+|---|---|---|---|---|
+| Remitente | `@acme.com` | Clientes\Acme | Sí | *(lo rellena la macro)* |
+| Asunto | `factura` | Facturas\2026 | Sí | |
+| Para/CC | `ventas@miempresa.com` | Ventas | No | |
+
+- **Buscar en**: *Remitente*, *Para/CC*, *Asunto* o *Cuerpo* (desplegable).
+- **Mover a carpeta**: desplegable con tus carpetas.
+- **Activa = No** desactiva la regla sin borrarla.
+
+Pulsa **Aplicar reglas a la Bandeja**:
+
+1. Revisa **todos** los correos de la Bandeja de entrada (sin mover nada todavía).
+2. Te muestra un **resumen** («Fila 2: 5 correos → Clientes\Acme…») y te pide confirmación.
+3. Si aceptas, mueve cada correo a su carpeta y lo saca de la Bandeja de entrada.
+
+Las reglas se revisan **de arriba abajo**: si un correo cumple varias, manda la primera.
+
+### 4.10 Actualizar desde una versión anterior
+
+Si ya tenías el libro montado con una versión anterior:
+
+1. **Alt + F11**. En el panel izquierdo, clic derecho en cada módulo antiguo (**modConfiguracion**, **modNotesConexion**, **modLeerCorreo**, **modEnviarCorreo**, **modAdjuntos**, **modPreparar**) > *Quitar…* > **No** (no hace falta exportarlos).
+2. **Archivo > Importar archivo** e importa los **10** `.bas` de la carpeta `vba`.
 3. **Depuración > Compilar VBAProject**.
-4. **Alt + F8 > PrepararLibro > Ejecutar**. Borra el botón antiguo y crea los nuevos. Tus datos no se tocan.
+4. **Alt + F8 > PrepararLibro > Ejecutar**. Crea las hojas nuevas, mueve los botones de la hoja *Bandeja* a la columna L y borra el botón antiguo *Desconectar de Notes*. Tus datos no se tocan.
 
 ---
 
@@ -180,8 +275,10 @@ Todo lo que puedes ajustar está en el módulo **`modConfiguracion`**:
 
 | Constante | Para qué sirve | Valor por defecto |
 |---|---|---|
-| `HOJA_BANDEJA` / `HOJA_ENVIAR` | Nombres de las hojas | `"Bandeja"` / `"Enviar"` |
-| `MAX_CORREOS` | Nº máximo de correos que se leen | `100` |
+| `HOJA_BANDEJA`, `HOJA_ENVIAR`, `HOJA_CARPETAS`, `HOJA_BUSCAR`, `HOJA_REGLAS` | Nombres de las hojas | `"Bandeja"`, `"Enviar"`, `"Carpetas"`, `"Buscar"`, `"Reglas"` |
+| `MAX_CORREOS` | Nº máximo de correos al leer la Bandeja de entrada | `100` |
+| `MAX_CORREOS_CARPETA` | Nº máximo de correos al leer una carpeta o buscar | `500` |
+| `CARPETA_BANDEJA` / `CARPETA_ENVIADOS` | Cómo se ven en Excel las carpetas del sistema | `"Bandeja de entrada"` / `"Enviados"` |
 | `LONGITUD_EXTRACTO` | Caracteres del cuerpo que se copian | `200` |
 | `SERVIDOR_CORREO` / `ARCHIVO_CORREO` | Ubicación del buzón si la detección automática falla | `""` (automático) |
 | `TEXTO_CONECTAR` / `TEXTO_DESCONECTAR` | Textos del botón de conexión | `"Conectar a Notes"` / `"Desconectar de Notes"` |
@@ -256,7 +353,23 @@ Algunos correos en formato HTML/MIME no exponen el texto de forma sencilla. El r
 
 ### Va muy lento
 
-Reduce `MAX_CORREOS` en `modConfiguracion`. Leer cientos de correos de un servidor remoto lleva su tiempo.
+Reduce `MAX_CORREOS` o `MAX_CORREOS_CARPETA` en `modConfiguracion`. Leer cientos de correos de un servidor remoto lleva su tiempo.
+Al buscar, usa el filtro de fechas o elige una carpeta concreta: buscar texto en el cuerpo de todo el buzón es lo más lento.
+
+### La columna «Mover a» no tiene desplegable / no sale una carpeta nueva
+
+Ve a la hoja *Carpetas* y pulsa **Actualizar carpetas**. El desplegable usa esa lista.
+Después vuelve a leer la bandeja (o la carpeta) para que las filas tengan el desplegable.
+
+### «No leídos» sale vacío o «Marcar como leído» da error
+
+Esas funciones necesitan **HCL Notes 8 o superior**. En versiones antiguas el resto de macros funciona igual.
+
+### He eliminado una carpeta y no encuentro sus correos
+
+Si al eliminarla elegiste **No** (no pasarlos a la Bandeja), los correos siguen en tu buzón, en la vista
+**Todos los documentos** de Notes. La hoja *Buscar* no los encuentra (solo busca dentro de carpetas):
+ábrelos en Notes desde *Todos los documentos* y muévelos a una carpeta.
 
 ---
 
