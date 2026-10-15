@@ -33,6 +33,13 @@ Public Const LONGITUD_EXTRACTO As Long = 200
 Public Const SERVIDOR_CORREO As String = ""
 Public Const ARCHIVO_CORREO As String = ""
 
+'--- Botón de conexión ---------------------------------------------------------
+' El mismo botón sirve para conectar y desconectar: su texto cambia solo
+' según el estado de la conexión.
+Public Const TEXTO_CONECTAR As String = "Conectar a Notes"
+Public Const TEXTO_DESCONECTAR As String = "Desconectar de Notes"
+Public Const BOTON_CONEXION As String = "btn_ConectarDesconectarNotes"   ' Nombre interno (no tocar)
+
 '--- Columnas de la hoja "Bandeja" (1 = A, 2 = B, ...) ------------------------
 Public Const COL_B_FECHA As Long = 1       ' A: Fecha
 Public Const COL_B_REMITENTE As Long = 2   ' B: Remitente

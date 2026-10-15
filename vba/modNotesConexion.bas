@@ -5,7 +5,9 @@ Attribute VB_Name = "modNotesConexion"
 ' Se encarga de "hablar" con HCL Notes:
 '   - ObtenerSesion    -> abre una sesión de Notes (pide contraseña si hace falta)
 '   - AbrirBaseCorreo  -> abre tu base de correo (tu buzón, el archivo .nsf)
+'   - ConectarDesconectarNotes -> macro del botón Conectar/Desconectar
 '   - DesconectarNotes -> olvida la sesión (útil si cambias de usuario)
+'   - ActualizarBotonesConexion -> pone el texto correcto en ese botón
 '   - MostrarError     -> muestra los errores en español con pistas de solución
 '
 ' ¿QUÉ ES "LATE BINDING"?
@@ -102,6 +104,9 @@ Public Function ObtenerSesion() As Object
     ' Guardamos la sesión para la próxima vez y la devolvemos.
     Set mSesion = sesion
     Set ObtenerSesion = sesion
+
+    ' Ya estamos conectados: el botón debe ofrecer "Desconectar".
+    ActualizarBotonesConexion
 End Function
 
 
@@ -193,6 +198,57 @@ End Function
 
 
 '------------------------------------------------------------------------------
+' EstaConectado: True si ya hay una sesión de Notes abierta.
+'------------------------------------------------------------------------------
+Public Function EstaConectado() As Boolean
+    EstaConectado = Not mSesion Is Nothing
+End Function
+
+
+'------------------------------------------------------------------------------
+' ConectarDesconectarNotes  -> MACRO DEL BOTÓN "Conectar / Desconectar"
+' Si estás conectado, desconecta. Si no, conecta.
+' Mira el estado REAL de la conexión (no el texto del botón), así que
+' siempre hace lo correcto aunque el texto se haya quedado desfasado.
+'------------------------------------------------------------------------------
+Public Sub ConectarDesconectarNotes()
+    If EstaConectado() Then
+        DesconectarNotes
+    Else
+        ConectarNotes
+    End If
+End Sub
+
+
+'------------------------------------------------------------------------------
+' ConectarNotes
+' Abre la sesión y el buzón sin hacer nada más. No es obligatorio: las demás
+' macros se conectan solas si hace falta.
+'------------------------------------------------------------------------------
+Public Sub ConectarNotes()
+    Dim usuario As String
+
+    On Error GoTo ManejoError
+
+    AbrirBaseCorreo   ' Abre la sesión (pide contraseña si hace falta) y el buzón
+
+    ' Nombre del usuario conectado, solo para mostrarlo. Si falla, da igual.
+    On Error Resume Next
+    usuario = mSesion.CommonUserName
+    On Error GoTo 0
+
+    MsgBox "Conectado a HCL Notes." & _
+           IIf(Len(usuario) > 0, vbCrLf & "Usuario: " & usuario, ""), _
+           vbInformation, "HCL Notes"
+    Exit Sub
+
+ManejoError:
+    MostrarError "Conectar a Notes", Err.Number, Err.Description
+    ActualizarBotonesConexion
+End Sub
+
+
+'------------------------------------------------------------------------------
 ' DesconectarNotes
 ' Olvida la sesión guardada. La próxima macro volverá a conectarse.
 ' Puedes asignarla a un botón o ejecutarla con Alt+F8.
@@ -200,7 +256,33 @@ End Function
 Public Sub DesconectarNotes()
     Set mBaseCorreo = Nothing
     Set mSesion = Nothing
+    ActualizarBotonesConexion   ' El botón vuelve a decir "Conectar"
     MsgBox "Desconectado de HCL Notes.", vbInformation, "HCL Notes"
+End Sub
+
+
+'------------------------------------------------------------------------------
+' ActualizarBotonesConexion
+' Recorre todas las hojas y pone en el botón de conexión el texto que toca:
+'   - conectado    -> "Desconectar de Notes"
+'   - desconectado -> "Conectar a Notes"
+' Si una hoja no tiene ese botón, simplemente la salta.
+'------------------------------------------------------------------------------
+Public Sub ActualizarBotonesConexion()
+    Dim ws As Worksheet
+    Dim texto As String
+
+    If EstaConectado() Then
+        texto = TEXTO_DESCONECTAR
+    Else
+        texto = TEXTO_CONECTAR
+    End If
+
+    On Error Resume Next   ' Hojas sin el botón: no pasa nada
+    For Each ws In ThisWorkbook.Worksheets
+        ws.Buttons(BOTON_CONEXION).Caption = texto
+    Next ws
+    On Error GoTo 0
 End Sub
 
 
@@ -256,6 +338,7 @@ Public Sub MostrarError(ByVal titulo As String, ByVal numero As Long, _
             ' Un error inesperado puede dejar la sesión en mal estado: la olvidamos.
             Set mBaseCorreo = Nothing
             Set mSesion = Nothing
+            ActualizarBotonesConexion   ' El botón vuelve a decir "Conectar"
     End Select
 
     MsgBox "Se ha producido un error." & vbCrLf & vbCrLf & _

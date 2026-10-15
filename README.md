@@ -71,8 +71,8 @@ a mano desde la web, las tildes podrían verse mal; es mejor importar los `.bas`
 
 1. Pulsa **Alt + F8**, elige **PrepararLibro** y pulsa **Ejecutar**.
 2. Se crearán:
-   - La hoja **Bandeja** con sus encabezados y los botones *Leer bandeja de entrada*, *Guardar adjuntos* y *Desconectar de Notes*.
-   - La hoja **Enviar** con sus encabezados, una fila de ejemplo y los botones *Enviar correos* y *Desconectar de Notes*.
+   - La hoja **Bandeja** con sus encabezados y los botones *Leer bandeja de entrada*, *Guardar adjuntos*, *Enviar correos* y *Conectar a Notes*.
+   - La hoja **Enviar** con sus encabezados, una fila de ejemplo y los botones *Enviar correos* y *Conectar a Notes*.
 3. Guarda el libro (**Ctrl + G** / **Ctrl + S**).
 
 <details>
@@ -80,7 +80,7 @@ a mano desde la web, las tildes podrían verse mal; es mejor importar los `.bas`
 
 1. Activa la pestaña **Programador** (*Archivo > Opciones > Personalizar cinta de opciones* > marca *Programador*).
 2. **Programador > Insertar > Botón (control de formulario)**.
-3. Dibuja el botón en la hoja; Excel te pedirá la macro: elige `LeerBandejaEntrada`, `EnviarCorreos` o `GuardarAdjuntos`.
+3. Dibuja el botón en la hoja; Excel te pedirá la macro: elige `LeerBandejaEntrada`, `EnviarCorreos`, `GuardarAdjuntos` o `ConectarDesconectarNotes`.
 4. Clic derecho en el botón > *Modificar texto* para cambiarle el nombre.
 </details>
 
@@ -136,10 +136,41 @@ EnviarUnCorreo "ana@empresa.com", "", "Hola", "Texto del mensaje", "C:\informe.p
    - **No** → todos los correos de la lista.
 4. Elige la carpeta de destino. Si un archivo ya existe, se guarda como `nombre (2).ext` (nunca se sobrescribe).
 
-### 4.4 Desconectar
+### 4.4 Conectar y desconectar
 
 La sesión de Notes se recuerda mientras el libro está abierto para no pedir la
-contraseña cada vez. El botón **Desconectar de Notes** la olvida (útil si cambias de usuario).
+contraseña cada vez. Un mismo botón sirve para las dos cosas y **cambia de texto solo**:
+
+- **Conectar a Notes** → abre la sesión (pide la contraseña si hace falta). Después el botón pasa a decir *Desconectar de Notes*.
+- **Desconectar de Notes** → olvida la sesión (útil si cambias de usuario). Después el botón vuelve a decir *Conectar a Notes*.
+
+No es obligatorio conectar antes: *Leer bandeja*, *Enviar correos* y *Guardar adjuntos* se conectan solos, y el botón también se actualiza.
+
+> El botón siempre mira el estado **real** de la conexión. Si alguna vez el texto
+> no coincide (por ejemplo, al abrir un libro que se guardó estando conectado),
+> púlsalo igualmente: hará lo correcto y el texto se corregirá.
+
+<details>
+<summary>Opcional: que el botón diga «Conectar» nada más abrir el libro</summary>
+
+1. **Alt + F11** y, a la izquierda, doble clic en **ThisWorkbook** (*EsteLibro*).
+2. Pega este código y guarda:
+
+```vb
+Private Sub Workbook_Open()
+    ActualizarBotonesConexion
+End Sub
+```
+</details>
+
+### 4.5 Actualizar desde una versión anterior
+
+Si ya tenías el libro montado con el botón antiguo *Desconectar de Notes*:
+
+1. **Alt + F11**. En el panel izquierdo, clic derecho en **modConfiguracion**, **modNotesConexion** y **modPreparar** > *Quitar…* > **No** (no hace falta exportarlos).
+2. **Archivo > Importar archivo** y vuelve a importar esos tres `.bas`.
+3. **Depuración > Compilar VBAProject**.
+4. **Alt + F8 > PrepararLibro > Ejecutar**. Borra el botón antiguo y crea los nuevos. Tus datos no se tocan.
 
 ---
 
@@ -153,6 +184,7 @@ Todo lo que puedes ajustar está en el módulo **`modConfiguracion`**:
 | `MAX_CORREOS` | Nº máximo de correos que se leen | `100` |
 | `LONGITUD_EXTRACTO` | Caracteres del cuerpo que se copian | `200` |
 | `SERVIDOR_CORREO` / `ARCHIVO_CORREO` | Ubicación del buzón si la detección automática falla | `""` (automático) |
+| `TEXTO_CONECTAR` / `TEXTO_DESCONECTAR` | Textos del botón de conexión | `"Conectar a Notes"` / `"Desconectar de Notes"` |
 
 Ejemplo si tu buzón no se detecta solo (pregúntale los datos a tu departamento de IT o
 míralos en Notes: *Archivo > Preferencias > Ubicaciones > Editar ubicación > Correo*):

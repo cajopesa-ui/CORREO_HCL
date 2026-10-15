@@ -27,14 +27,23 @@ Public Sub PrepararLibro()
     Set wsBandeja = PrepararHojaBandeja()
     Set wsEnviar = PrepararHojaEnviar()
 
+    ' Borramos el antiguo botón "Desconectar de Notes" (versiones anteriores),
+    ' que ahora se sustituye por el botón Conectar/Desconectar.
+    BorrarBoton wsBandeja, "btn_DesconectarNotes"
+    BorrarBoton wsEnviar, "btn_DesconectarNotes"
+
     ' --- Botones de la hoja Bandeja (a la derecha de los datos, columna H) ---
     CrearBoton wsBandeja, 1, "Leer bandeja de entrada", "LeerBandejaEntrada"
     CrearBoton wsBandeja, 2, "Guardar adjuntos", "GuardarAdjuntos"
-    CrearBoton wsBandeja, 3, "Desconectar de Notes", "DesconectarNotes"
+    CrearBoton wsBandeja, 3, "Enviar correos", "EnviarCorreos"
+    CrearBoton wsBandeja, 4, TEXTO_CONECTAR, "ConectarDesconectarNotes"
 
     ' --- Botones de la hoja Enviar --------------------------------------------
     CrearBoton wsEnviar, 1, "Enviar correos", "EnviarCorreos"
-    CrearBoton wsEnviar, 2, "Desconectar de Notes", "DesconectarNotes"
+    CrearBoton wsEnviar, 2, TEXTO_CONECTAR, "ConectarDesconectarNotes"
+
+    ' Ponemos el texto correcto en el botón de conexión (por si ya estabas conectado)
+    ActualizarBotonesConexion
 
     ' Fila de ejemplo en la hoja Enviar, solo si está vacía
     If Len(CStr(wsEnviar.Cells(2, COL_E_PARA).Value)) = 0 Then
@@ -169,12 +178,20 @@ Private Sub CrearBoton(ByVal ws As Worksheet, ByVal posicion As Long, _
 
     ' Si el botón ya existía (porque se ejecutó PrepararLibro antes), lo
     ' borramos para no tenerlo duplicado. Si no existía, no pasa nada.
-    On Error Resume Next
-    ws.Buttons("btn_" & macro).Delete
-    On Error GoTo 0
+    BorrarBoton ws, "btn_" & macro
 
     Set boton = ws.Buttons.Add(izquierda, arriba, 170, 28)
     boton.Name = "btn_" & macro
     boton.Caption = texto
     boton.OnAction = macro
+End Sub
+
+
+'------------------------------------------------------------------------------
+' BorrarBoton: borra el botón con ese nombre, si existe. (Uso interno)
+'------------------------------------------------------------------------------
+Private Sub BorrarBoton(ByVal ws As Worksheet, ByVal nombre As String)
+    On Error Resume Next
+    ws.Buttons(nombre).Delete
+    On Error GoTo 0
 End Sub
