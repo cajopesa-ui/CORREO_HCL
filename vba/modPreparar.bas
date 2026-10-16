@@ -21,6 +21,7 @@ Private Const BOTONES_ENVIAR As Long = 8      ' H
 Private Const BOTONES_CARPETAS As Long = 10   ' J
 Private Const BOTONES_BUSCAR As Long = 4      ' D
 Private Const BOTONES_REGLAS As Long = 7      ' G
+Private Const BOTONES_CLASIF As Long = 10     ' J
 
 
 '------------------------------------------------------------------------------
@@ -32,6 +33,7 @@ Public Sub PrepararLibro()
     Dim wsCarpetas As Worksheet
     Dim wsBuscar As Worksheet
     Dim wsReglas As Worksheet
+    Dim wsClasif As Worksheet
 
     On Error GoTo ManejoError
 
@@ -40,6 +42,8 @@ Public Sub PrepararLibro()
     Set wsCarpetas = PrepararHojaCarpetas()
     Set wsBuscar = PrepararHojaBuscar()
     Set wsReglas = PrepararHojaReglas()
+    PrepararHojaPalabras
+    Set wsClasif = PrepararHojaClasificacion()
 
     ' Borramos el antiguo botón "Desconectar de Notes" (versiones anteriores),
     ' que ahora se sustituye por el botón Conectar/Desconectar.
@@ -79,6 +83,12 @@ Public Sub PrepararLibro()
     CrearBoton wsReglas, BOTONES_REGLAS, 1, "Aplicar reglas a la Bandeja", "AplicarReglas"
     CrearBoton wsReglas, BOTONES_REGLAS, 2, TEXTO_CONECTAR, "ConectarDesconectarNotes"
 
+    ' --- Botones de la hoja Clasificacion ---------------------------------------
+    CrearBoton wsClasif, BOTONES_CLASIF, 1, "Clasificar con palabras clave", "ClasificarConReglas"
+    CrearBoton wsClasif, BOTONES_CLASIF, 2, "Importar clasificación de Claude", "ImportarClasificacion"
+    CrearBoton wsClasif, BOTONES_CLASIF, 3, "Aplicar clasificación", "AplicarClasificacion"
+    CrearBoton wsClasif, BOTONES_CLASIF, 4, TEXTO_CONECTAR, "ConectarDesconectarNotes"
+
     ' Ponemos el texto correcto en el botón de conexión (por si ya estabas conectado)
     ActualizarBotonesConexion
 
@@ -98,7 +108,8 @@ Public Sub PrepararLibro()
            "Hoja '" & HOJA_ENVIAR & "': rellena los correos y pulsa 'Enviar correos'." & vbCrLf & _
            "Hoja '" & HOJA_CARPETAS & "': pulsa 'Actualizar carpetas' para ver tu árbol de carpetas." & vbCrLf & _
            "Hoja '" & HOJA_BUSCAR & "': busca en todas tus carpetas." & vbCrLf & _
-           "Hoja '" & HOJA_REGLAS & "': archiva la Bandeja de entrada automáticamente." & vbCrLf & vbCrLf & _
+           "Hoja '" & HOJA_REGLAS & "': archiva la Bandeja de entrada automáticamente." & vbCrLf & _
+           "Hoja '" & HOJA_CLASIFICACION & "': clasifica los correos por temas en '" & CARPETA_CLASIFICACION & "'." & vbCrLf & vbCrLf & _
            "Recuerda guardar el libro como 'Libro de Excel habilitado para macros (*.xlsm)'.", _
            vbInformation, "Preparar libro"
     Exit Sub
@@ -313,6 +324,106 @@ End Function
 
 
 '------------------------------------------------------------------------------
+' PrepararHojaClasificacion: hoja donde se REVISA la clasificación antes de
+' aplicarla.
+'------------------------------------------------------------------------------
+Public Function PrepararHojaClasificacion() As Worksheet
+    Dim ws As Worksheet
+    Set ws = ObtenerHoja(HOJA_CLASIFICACION)
+
+    PrepararListas
+
+    ws.Cells(1, COL_K_FECHA).Value = "Fecha"
+    ws.Cells(1, COL_K_REMITENTE).Value = "Remitente"
+    ws.Cells(1, COL_K_ASUNTO).Value = "Asunto"
+    ws.Cells(1, COL_K_CARPETA).Value = "Carpeta propuesta (puedes cambiarla)"
+    ws.Cells(1, COL_K_MOTIVO).Value = "Motivo"
+    ws.Cells(1, COL_K_APLICAR).Value = "Aplicar"
+    ws.Cells(1, COL_K_RESULTADO).Value = "Resultado"
+    ws.Cells(1, COL_K_ID).Value = "ID (no tocar)"
+    FormatoEncabezado ws.Range(ws.Cells(1, COL_K_FECHA), ws.Cells(1, COL_K_ID))
+    ' Las columnas que puedes cambiar, en naranja
+    ws.Cells(1, COL_K_CARPETA).Interior.Color = RGB(197, 90, 17)
+    ws.Cells(1, COL_K_APLICAR).Interior.Color = RGB(197, 90, 17)
+
+    If ws.Columns(COL_K_ASUNTO).ColumnWidth < 20 Then
+        ws.Columns(COL_K_FECHA).ColumnWidth = 17
+        ws.Columns(COL_K_REMITENTE).ColumnWidth = 25
+        ws.Columns(COL_K_ASUNTO).ColumnWidth = 50
+        ws.Columns(COL_K_CARPETA).ColumnWidth = 38
+        ws.Columns(COL_K_MOTIVO).ColumnWidth = 28
+        ws.Columns(COL_K_APLICAR).ColumnWidth = 8
+        ws.Columns(COL_K_RESULTADO).ColumnWidth = 40
+        ws.Columns(COL_K_ID).ColumnWidth = 10
+        ws.Columns(COL_K_ID).Font.Color = RGB(150, 150, 150)
+        ws.Columns(COL_K_FECHA).NumberFormat = "dd/mm/yyyy hh:mm"
+    End If
+
+    Set PrepararHojaClasificacion = ws
+End Function
+
+
+'------------------------------------------------------------------------------
+' PrepararHojaPalabras: reglas de la clasificación automática. La primera vez
+' se rellena con la clasificación propuesta por Claude.
+'------------------------------------------------------------------------------
+Public Sub PrepararHojaPalabras()
+    Dim ws As Worksheet
+    Dim reglas As Variant
+    Dim i As Long
+
+    Set ws = ObtenerHoja(HOJA_PALABRAS)
+
+    PrepararListas
+
+    ws.Cells(1, COL_P_CARPETA).Value = "Carpeta (dentro de '" & CARPETA_CLASIFICACION & "')"
+    ws.Cells(1, COL_P_CAMPO).Value = "Buscar en"
+    ws.Cells(1, COL_P_PALABRAS).Value = "Palabras (separadas por ;)"
+    ws.Cells(1, COL_P_ACTIVA).Value = "Activa"
+    FormatoEncabezado ws.Range(ws.Cells(1, COL_P_CARPETA), ws.Cells(1, COL_P_ACTIVA))
+
+    With ws.Range(ws.Cells(2, COL_P_CAMPO), ws.Cells(200, COL_P_CAMPO)).Validation
+        .Delete
+        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Operator:=xlBetween, Formula1:="=ListaCamposClasif"
+    End With
+    With ws.Range(ws.Cells(2, COL_P_ACTIVA), ws.Cells(200, COL_P_ACTIVA)).Validation
+        .Delete
+        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Operator:=xlBetween, Formula1:="=ListaSiNo"
+    End With
+
+    ' Primera vez: reglas de ejemplo con la clasificación propuesta.
+    ' IMPORTANTE: se revisan de arriba abajo y gana la PRIMERA que se cumple.
+    If Len(CStr(ws.Cells(2, COL_P_CARPETA).Value)) = 0 Then
+        reglas = Array( _
+            Array("RRHH\Sindicatos", "Asunto", "UCESHA;sindicat;huelga"), _
+            Array("RRHH", "Asunto", "URRH;jubil;teletrabajo;trabajo a distancia;tramitacion incidencias;turnos;vacunacion"), _
+            Array("Informatica\Cover Tamper HP", "Asunto o cuerpo", "tamper"), _
+            Array("Informatica\Obsolescencia", "Asunto", "obsolesc;obsoletos"), _
+            Array("Informatica\Despliegues CEAR", "Asunto", "CEAR;I26-;parches;BIOS;KillDisk"), _
+            Array("Informatica\Incidencias y Serman", "Asunto", "serman;averia;rotura;- incidencia -"), _
+            Array("Informatica\Zoom y telefonia", "Asunto", "zoom"), _
+            Array("Informatica\Impresoras y consumibles", "Asunto", "impresora;toner;MyQ;AIR MATERIAL;multifuncion"), _
+            Array("Informatica\Atencion al contribuyente", "Asunto", "ateneo;P@co;contribuyente;gestionar cita"), _
+            Array("Edificios y seguridad", "Asunto", "avisegu;seguridad;tecnicos de inforein"), _
+            Array("Informatica\Redes y comunicaciones", "Asunto", "switch;incomunicacion;internet;intranet;suministro electrico;extensores;de red"), _
+            Array("Informatica\Equipos NPT y material", "Asunto", "NPT;mochila;cargador;portatil;tabletas;dispositivos;equipo;bateria;base de conexion;sobremesa;incorporacion"), _
+            Array("Personal", "Remitente", "Carlos Jose"))
+        For i = LBound(reglas) To UBound(reglas)
+            ws.Cells(i + 2, COL_P_CARPETA).Value = reglas(i)(0)
+            ws.Cells(i + 2, COL_P_CAMPO).Value = reglas(i)(1)
+            ws.Cells(i + 2, COL_P_PALABRAS).Value = reglas(i)(2)
+            ws.Cells(i + 2, COL_P_ACTIVA).Value = "Sí"
+        Next i
+
+        ws.Columns(COL_P_CARPETA).ColumnWidth = 40
+        ws.Columns(COL_P_CAMPO).ColumnWidth = 16
+        ws.Columns(COL_P_PALABRAS).ColumnWidth = 90
+        ws.Columns(COL_P_ACTIVA).ColumnWidth = 8
+    End If
+End Sub
+
+
+'------------------------------------------------------------------------------
 ' PrepararListas: hoja OCULTA "Listas" con las opciones de los desplegables
 ' (Sí/No y los campos de las reglas) y sus nombres de rango.
 '------------------------------------------------------------------------------
@@ -330,6 +441,13 @@ Public Sub PrepararListas()
 
     ThisWorkbook.Names.Add Name:="ListaSiNo", RefersTo:="='" & ws.Name & "'!$A$1:$A$2"
     ThisWorkbook.Names.Add Name:="ListaCamposRegla", RefersTo:="='" & ws.Name & "'!$B$1:$B$4"
+
+    ' Dónde buscar las palabras clave de la clasificación
+    ws.Range("C1").Value = "Asunto"
+    ws.Range("C2").Value = "Remitente"
+    ws.Range("C3").Value = "Cuerpo"
+    ws.Range("C4").Value = "Asunto o cuerpo"
+    ThisWorkbook.Names.Add Name:="ListaCamposClasif", RefersTo:="='" & ws.Name & "'!$C$1:$C$4"
 
     If ws.Visible = xlSheetVisible Then ws.Visible = xlSheetHidden
 End Sub

@@ -17,7 +17,9 @@ Public Const HOJA_ENVIAR As String = "Enviar"     ' Hoja con los correos a envia
 Public Const HOJA_CARPETAS As String = "Carpetas" ' Árbol de carpetas de tu buzón
 Public Const HOJA_BUSCAR As String = "Buscar"     ' Criterios de búsqueda
 Public Const HOJA_REGLAS As String = "Reglas"     ' Reglas de archivado automático
-Public Const HOJA_LISTAS As String = "Listas"     ' Hoja OCULTA con las opciones de los desplegables
+Public Const HOJA_LISTAS As String = "Listas"
+Public Const HOJA_CLASIFICACION As String = "Clasificacion"     ' Revisión de la clasificación
+Public Const HOJA_PALABRAS As String = "Palabras clave"         ' Reglas de la clasificación automática     ' Hoja OCULTA con las opciones de los desplegables
 
 '--- Lectura de la bandeja de entrada -----------------------------------------
 ' Número de correos que se PROPONE leer (empezando por los más recientes).
@@ -96,6 +98,35 @@ Public Const FILA_BUS_DESDE As Long = 5
 Public Const FILA_BUS_HASTA As Long = 6
 Public Const FILA_BUS_CARPETA As Long = 7
 Public Const FILA_BUS_SUBCARPETAS As Long = 8
+
+'--- Clasificación por temas --------------------------------------------------
+' Todas las carpetas de la clasificación se crean DENTRO de esta carpeta, para
+' que no se mezclen con las que ya tienes.
+Public Const CARPETA_CLASIFICACION As String = "Clasificacion nueva"
+
+' Texto que se pone a los correos que no cumplen ninguna palabra clave.
+' Esos correos se marcan con Aplicar = "No" (se quedan donde están).
+Public Const SIN_CLASIFICAR As String = "Sin clasificar"
+
+' False = COPIAR (el correo sigue también en la Bandeja de entrada).
+' True  = MOVER (el correo sale de la Bandeja de entrada).
+Public Const CLASIFICACION_MUEVE As Boolean = False
+
+'--- Columnas de la hoja "Clasificacion" --------------------------------------
+Public Const COL_K_FECHA As Long = 1       ' A: Fecha
+Public Const COL_K_REMITENTE As Long = 2   ' B: Remitente
+Public Const COL_K_ASUNTO As Long = 3      ' C: Asunto
+Public Const COL_K_CARPETA As Long = 4     ' D: Carpeta propuesta (se puede cambiar)
+Public Const COL_K_MOTIVO As Long = 5      ' E: Por qué (regla o archivo de Claude)
+Public Const COL_K_APLICAR As Long = 6     ' F: Aplicar (Sí / No)
+Public Const COL_K_RESULTADO As Long = 7   ' G: Resultado
+Public Const COL_K_ID As Long = 8          ' H: ID del correo (no tocar)
+
+'--- Columnas de la hoja "Palabras clave" -------------------------------------
+Public Const COL_P_CARPETA As Long = 1     ' A: Carpeta (dentro de "Clasificacion nueva")
+Public Const COL_P_CAMPO As Long = 2       ' B: Dónde buscar
+Public Const COL_P_PALABRAS As Long = 3    ' C: Palabras, separadas por ;
+Public Const COL_P_ACTIVA As Long = 4      ' D: Activa (Sí / No)
 
 '--- Columnas de la hoja "Enviar" ---------------------------------------------
 Public Const COL_E_PARA As Long = 1        ' A: Para (varias direcciones separadas por ;)

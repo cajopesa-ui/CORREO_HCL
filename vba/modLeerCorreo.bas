@@ -733,7 +733,7 @@ End Function
 ' NombreLegible: Notes guarda los nombres así: "CN=Juan Pérez/O=Empresa".
 ' Esta función lo convierte en "Juan Pérez".
 '------------------------------------------------------------------------------
-Private Function NombreLegible(ByVal sesion As Object, ByVal nombre As Variant) As String
+Public Function NombreLegible(ByVal sesion As Object, ByVal nombre As Variant) As String
     Dim objNombre As Object
     Dim resultado As String
 

@@ -10,6 +10,7 @@ Macros de Excel que se conectan a **HCL Notes** (antes Lotus Notes) para:
 - 📂 **Leer carpetas completas** (con sus subcarpetas) y **buscar** en todo el buzón por texto, remitente y fechas.
 - 🤖 **Reglas de archivado**: mueve automáticamente los correos de la Bandeja de entrada según el remitente, el asunto…
 - ✉️ **Marcar como leído / no leído**.
+- 🗂️ **Clasificar por temas**: guarda los correos en carpetas dentro de *Clasificacion nueva*, con la clasificación que prepara Claude o con palabras clave.
 
 El código está muy comentado en español y pensado para quien empieza con VBA.
 
@@ -42,6 +43,7 @@ vba/
 ├── modMoverCorreo.bas     ← mover / copiar correos, marcar leído / no leído
 ├── modBuscar.bas          ← leer una carpeta completa y buscar correos
 ├── modReglas.bas          ← reglas de archivado automático
+├── modClasificar.bas      ← clasificación por temas (Claude o palabras clave)
 └── modPreparar.bas        ← macro PrepararLibro (crea hojas y botones)
 ```
 
@@ -65,8 +67,8 @@ a mano desde la web, las tildes podrían verse mal; es mejor importar los `.bas`
 2. Pulsa **Alt + F11** para abrir el editor de VBA.
 3. En el menú: **Archivo > Importar archivo…** (o *File > Import File…*).
 4. Selecciona `modConfiguracion.bas` y pulsa **Abrir**.
-5. Repite el paso 3–4 con **cada uno** de los 10 archivos `.bas` de la carpeta `vba`.
-6. En el panel izquierdo (*Explorador de proyectos*) verás una carpeta **Módulos** con los 10 módulos.
+5. Repite el paso 3–4 con **cada uno** de los 11 archivos `.bas` de la carpeta `vba`.
+6. En el panel izquierdo (*Explorador de proyectos*) verás una carpeta **Módulos** con los 11 módulos.
 7. *(Recomendado)* Menú **Depuración > Compilar VBAProject**. Si no sale ningún mensaje, todo está bien.
 
 ### 3.3 Guardar como libro con macros (.xlsm)
@@ -85,6 +87,8 @@ a mano desde la web, las tildes podrían verse mal; es mejor importar los `.bas`
    - **Carpetas**: tu árbol de carpetas. Botones *Actualizar carpetas*, *Leer carpeta*, *Crear carpeta / subcarpeta*, *Renombrar carpeta*, *Eliminar carpeta*, *Crear carpetas de la lista*, *Guardar adjuntos de la carpeta* y *Conectar a Notes*.
    - **Buscar**: criterios de búsqueda. Botones *Buscar*, *Limpiar criterios* y *Conectar a Notes*.
    - **Reglas**: reglas de archivado, con una regla de ejemplo desactivada. Botones *Aplicar reglas a la Bandeja* y *Conectar a Notes*.
+   - **Clasificacion**: revisión de la clasificación por temas. Botones *Clasificar con palabras clave*, *Importar clasificación de Claude*, *Aplicar clasificación* y *Conectar a Notes*.
+   - **Palabras clave**: las reglas de la clasificación automática (ya rellenas con una propuesta).
    - **Listas** (oculta): las opciones de los desplegables. No la borres.
 3. Guarda el libro (**Ctrl + G** / **Ctrl + S**).
 
@@ -303,12 +307,53 @@ Te adjunto el presupuesto...
 - Los adjuntos **no** van dentro del `.txt` (solo sus nombres). Para guardarlos usa *Guardar adjuntos*.
 - Los correos en formato web (HTML) se convierten a texto antes de exportarlos.
 
-### 4.11 Actualizar desde una versión anterior
+### 4.11 Clasificar por temas (hojas «Clasificacion» y «Palabras clave»)
+
+Organiza los correos **por temas** en carpetas que cuelgan de **`Clasificacion nueva`**, para que no se mezclen con tus carpetas:
+
+```
+Clasificacion nueva
+├── Informatica
+│   ├── Despliegues CEAR
+│   ├── Equipos NPT y material
+│   ├── Cover Tamper HP
+│   ├── Impresoras y consumibles
+│   ├── Incidencias y Serman
+│   ├── Redes y comunicaciones
+│   ├── Zoom y telefonia
+│   ├── Obsolescencia
+│   └── Atencion al contribuyente
+├── Edificios y seguridad
+├── RRHH
+│   └── Sindicatos
+└── Personal
+```
+
+Hay **dos formas** de obtener la clasificación. Las dos terminan en la hoja **Clasificacion**, donde la **revisas antes de aplicarla**:
+
+**A) La prepara Claude (más precisa)**
+1. Lee la bandeja con **contenido completo** y guarda el `.txt` (apartado 4.10).
+2. Pásale el `.txt` a Claude y pídele la clasificación. Te devolverá un archivo con una línea por correo: `ID;Carpeta;Asunto`.
+3. Pulsa **Importar clasificación de Claude** y elige ese archivo.
+
+**B) Palabras clave (automática, sin salir de tu PC)**
+1. En la hoja **Palabras clave** cada fila es una regla: *carpeta*, *dónde buscar* (Asunto, Remitente, Cuerpo o Asunto o cuerpo), *palabras separadas por `;`* y *Activa*.
+   Las reglas se revisan **de arriba abajo** y gana la **primera** que se cumple. No distinguen mayúsculas ni tildes.
+2. Pulsa **Clasificar con palabras clave** y di cuántos correos de la Bandeja quieres clasificar.
+3. Los que no cumplan ninguna regla salen como **Sin clasificar** con *Aplicar = No* (se quedan donde están).
+
+**Revisar y aplicar**
+- En la hoja **Clasificacion** puedes cambiar la **carpeta propuesta** (columna D) o poner **Aplicar = No** (columna F) en los que no quieras tocar.
+- Pulsa **Aplicar clasificación**: te dice cuántos correos y cuántas carpetas nuevas, pide confirmación, **crea las carpetas que falten** y **copia** cada correo a la suya. La columna *Resultado* dice qué ha pasado y *Aplicar* pasa a «Hecho».
+- Por defecto **copia**: el correo sigue también en la Bandeja de entrada. Si un día prefieres **mover**, pon `CLASIFICACION_MUEVE = True` en `modConfiguracion`.
+- Si no te gusta el resultado, borra la carpeta *Clasificacion nueva* desde la hoja *Carpetas* (sin pasar los correos a la Bandeja, porque siguen allí): no se pierde nada.
+
+### 4.12 Actualizar desde una versión anterior
 
 Si ya tenías el libro montado con una versión anterior:
 
-1. **Alt + F11**. En el panel izquierdo, clic derecho en cada módulo antiguo (**modConfiguracion**, **modNotesConexion**, **modLeerCorreo**, **modEnviarCorreo**, **modAdjuntos**, **modPreparar**) > *Quitar…* > **No** (no hace falta exportarlos).
-2. **Archivo > Importar archivo** e importa los **10** `.bas` de la carpeta `vba`.
+1. **Alt + F11**. En el panel izquierdo, clic derecho en **cada módulo** que ya tengas (todos los que empiezan por `mod`) > *Quitar…* > **No** (no hace falta exportarlos).
+2. **Archivo > Importar archivo** e importa los **11** `.bas` de la carpeta `vba`.
 3. **Depuración > Compilar VBAProject**.
 4. **Alt + F8 > PrepararLibro > Ejecutar**. Crea las hojas nuevas, mueve los botones de la hoja *Bandeja* a la columna L y borra el botón antiguo *Desconectar de Notes*. Tus datos no se tocan.
 
@@ -323,6 +368,8 @@ Todo lo que puedes ajustar está en el módulo **`modConfiguracion`**:
 | `HOJA_BANDEJA`, `HOJA_ENVIAR`, `HOJA_CARPETAS`, `HOJA_BUSCAR`, `HOJA_REGLAS` | Nombres de las hojas | `"Bandeja"`, `"Enviar"`, `"Carpetas"`, `"Buscar"`, `"Reglas"` |
 | `MAX_CORREOS` | Nº de correos que se **propone** al leer la Bandeja de entrada | `100` |
 | `MAX_CORREOS_CARPETA` | Nº de correos que se **propone** al leer una carpeta o buscar | `500` |
+| `CARPETA_CLASIFICACION` | Carpeta de la que cuelga la clasificación por temas | `"Clasificacion nueva"` |
+| `CLASIFICACION_MUEVE` | `False` = copiar, `True` = mover (sacar de la Bandeja) | `False` |
 | `CARPETA_BANDEJA` / `CARPETA_ENVIADOS` | Cómo se ven en Excel las carpetas del sistema | `"Bandeja de entrada"` / `"Enviados"` |
 | `LONGITUD_EXTRACTO` | Caracteres del cuerpo que se copian | `200` |
 | `SERVIDOR_CORREO` / `ARCHIVO_CORREO` | Ubicación del buzón si la detección automática falla | `""` (automático) |
