@@ -368,8 +368,7 @@ Private Function BloqueCorreo(ByVal sesion As Object, ByVal doc As Object, _
     t = "ID: " & doc.UniversalID & vbCrLf
     t = t & "Fecha: " & IIf(IsDate(fecha), Format$(fecha, "yyyy-mm-dd hh:nn"), "") & vbCrLf
     t = t & "De: " & UnaLinea(TextoRemitente(sesion, doc)) & vbCrLf
-    t = t & "Para: " & UnaLinea(ListaNombres(sesion, doc, "SendTo")) & vbCrLf
-    t = t & "CC: " & UnaLinea(ListaNombres(sesion, doc, "CopyTo")) & vbCrLf
+    ' Para y CC NO se exportan: suelen ser listas muy largas de destinatarios
     t = t & "Asunto: " & UnaLinea(TextoCampo(doc, "Subject")) & vbCrLf
     t = t & "Carpeta: " & carpetaVisible & vbCrLf
     t = t & "Leído: " & TextoLeido(doc) & vbCrLf
@@ -449,34 +448,6 @@ Private Function TextoRemitente(ByVal sesion As Object, ByVal doc As Object) As 
     Else
         TextoRemitente = nombre
     End If
-End Function
-
-
-'------------------------------------------------------------------------------
-' ListaNombres: todos los nombres de un campo (Para, CC...) legibles y
-' separados por "; ".
-'------------------------------------------------------------------------------
-Private Function ListaNombres(ByVal sesion As Object, ByVal doc As Object, _
-                              ByVal nombreCampo As String) As String
-    Dim valores As Variant
-    Dim i As Long
-    Dim resultado As String
-
-    On Error GoTo Salir
-    If Not doc.HasItem(nombreCampo) Then GoTo Salir
-
-    valores = doc.GetItemValue(nombreCampo)
-    If Not IsArray(valores) Then valores = Array(valores)
-
-    For i = LBound(valores) To UBound(valores)
-        If Len(CStr(valores(i))) > 0 Then
-            If Len(resultado) > 0 Then resultado = resultado & "; "
-            resultado = resultado & NombreLegible(sesion, valores(i))
-        End If
-    Next i
-
-Salir:
-    ListaNombres = resultado
 End Function
 
 

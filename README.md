@@ -284,8 +284,6 @@ Formato: cada correo va entre '### CORREO n DE N ###' y '### FIN CORREO n ###'.
 ID: 8A3F0C...C21
 Fecha: 2026-10-15 09:12
 De: Ana López <ana@acme.com>
-Para: Juan Pérez; ventas@miempresa.com
-CC: Jefe Ventas
 Asunto: Presupuesto octubre
 Carpeta: Bandeja de entrada
 Leído: Sí
@@ -299,7 +297,8 @@ Te adjunto el presupuesto...
 ```
 
 - Los correos van en el **mismo orden que en la hoja** (más recientes primero).
-- Las etiquetas (`De:`, `Para:`, `Asunto:`…) son siempre las mismas y cada una ocupa una sola línea.
+- Las etiquetas (`De:`, `Asunto:`…) son siempre las mismas y cada una ocupa una sola línea.
+- Los destinatarios (**Para** y **CC**) **no se exportan**, porque suelen ser listas muy largas.
 - El cuerpo conserva sus saltos de línea. Si alguna línea del cuerpo empezase por `### ` o `--- `, se le añade un espacio delante para que no se confunda con las marcas.
 - Los adjuntos **no** van dentro del `.txt` (solo sus nombres). Para guardarlos usa *Guardar adjuntos*.
 - Los correos en formato web (HTML) se convierten a texto antes de exportarlos.
