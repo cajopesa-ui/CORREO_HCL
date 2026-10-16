@@ -10,7 +10,9 @@ Attribute VB_Name = "modBuscar"
 '   BuscarCorreos   -> busca con los criterios escritos en la hoja "Buscar"
 '   LimpiarBusqueda -> borra los criterios de la hoja "Buscar"
 '
-' Se leen como máximo MAX_CORREOS_CARPETA correos (ver modConfiguracion).
+' Antes de leer se pregunta cuántos correos como máximo (se propone
+' MAX_CORREOS_CARPETA) y si se quieren en resumen o con el contenido completo
+' en un .txt (ver PedirOpcionesLectura en modLeerCorreo).
 '==============================================================================
 Option Explicit
 
@@ -28,6 +30,9 @@ Public Sub LeerCarpeta()
     Dim desde As Date
     Dim contador As Long
     Dim limiteAlcanzado As Boolean
+    Dim maximo As Long
+    Dim rutaTxt As String
+    Dim origen As String
     Dim s As Variant
 
     On Error GoTo ManejoError
@@ -69,19 +74,26 @@ Public Sub LeerCarpeta()
         desde = Date - CLng(dias)
     End If
 
+    ' ¿Cuántos, resumen o completo, y dónde guardar el .txt?
+    If Not PedirOpcionesLectura("Leer carpeta", MAX_CORREOS_CARPETA, ruta, maximo, rutaTxt) Then Exit Sub
+
+    ' Descripción para la cabecera del .txt
+    origen = "Carpeta '" & ruta & "'" & IIf(carpetas.Count > 1, " y sus subcarpetas", "") & _
+             IIf(desde <> 0, " (desde " & Format$(desde, "yyyy-mm-dd") & ")", "")
+
     Application.ScreenUpdating = False
     Application.StatusBar = "Leyendo la carpeta '" & ruta & "'..."
 
-    contador = LeerCorreosEnHoja(carpetas, MAX_CORREOS_CARPETA, "", "", desde, 0, limiteAlcanzado)
+    contador = LeerCorreosEnHoja(carpetas, maximo, "", "", desde, 0, limiteAlcanzado, rutaTxt, origen)
 
     Application.StatusBar = False
     Application.ScreenUpdating = True
     ObtenerHoja(HOJA_BANDEJA).Activate
     MsgBox "Se han leído " & contador & " correo(s) de '" & ruta & "'" & _
            IIf(carpetas.Count > 1, " y sus subcarpetas", "") & "." & _
-           IIf(limiteAlcanzado, vbCrLf & vbCrLf & "Se ha llegado al máximo de " & MAX_CORREOS_CARPETA & _
-               " correos. Puedes subirlo en modConfiguracion (MAX_CORREOS_CARPETA) " & _
-               "o usar el filtro de días.", ""), _
+           IIf(limiteAlcanzado, vbCrLf & vbCrLf & "Se ha llegado al máximo de " & maximo & _
+               " correos que pediste: hay más en la carpeta.", "") & _
+           TextoFinalTxt(rutaTxt), _
            vbInformation, "Leer carpeta"
 
 Salir:
@@ -110,6 +122,9 @@ Public Sub BuscarCorreos()
     Dim hasta As Date
     Dim contador As Long
     Dim limiteAlcanzado As Boolean
+    Dim maximo As Long
+    Dim rutaTxt As String
+    Dim origen As String
     Dim s As Variant
 
     On Error GoTo ManejoError
@@ -134,6 +149,15 @@ Public Sub BuscarCorreos()
         Exit Sub
     End If
 
+    ' ¿Cuántos, resumen o completo, y dónde guardar el .txt?
+    If Not PedirOpcionesLectura("Buscar correos", MAX_CORREOS_CARPETA, "Busqueda", maximo, rutaTxt) Then Exit Sub
+
+    ' Descripción de la búsqueda para la cabecera del .txt
+    origen = "Búsqueda -> texto: '" & texto & "', remitente: '" & remitente & "', desde: " & _
+             IIf(desde <> 0, Format$(desde, "yyyy-mm-dd"), "-") & ", hasta: " & _
+             IIf(hasta <> 0, Format$(hasta, "yyyy-mm-dd"), "-") & ", carpeta: " & _
+             IIf(Len(carpeta) > 0, "'" & carpeta & "'" & IIf(conSubcarpetas, " y subcarpetas", ""), "todas")
+
     Application.ScreenUpdating = False
     Application.StatusBar = "Conectando con HCL Notes..."
     Set db = AbrirBaseCorreo()
@@ -156,14 +180,16 @@ Public Sub BuscarCorreos()
     End If
 
     ' 3) Buscamos
-    contador = LeerCorreosEnHoja(carpetas, MAX_CORREOS_CARPETA, texto, remitente, desde, hasta, limiteAlcanzado)
+    contador = LeerCorreosEnHoja(carpetas, maximo, texto, remitente, desde, hasta, limiteAlcanzado, _
+                                 rutaTxt, origen)
 
     Application.StatusBar = False
     Application.ScreenUpdating = True
     ObtenerHoja(HOJA_BANDEJA).Activate
     MsgBox "Se han encontrado " & contador & " correo(s)." & _
-           IIf(limiteAlcanzado, vbCrLf & vbCrLf & "Se ha llegado al máximo de " & MAX_CORREOS_CARPETA & _
-               " correos: afina la búsqueda o sube MAX_CORREOS_CARPETA en modConfiguracion.", ""), _
+           IIf(limiteAlcanzado, vbCrLf & vbCrLf & "Se ha llegado al máximo de " & maximo & _
+               " correos que pediste: puede haber más resultados.", "") & _
+           TextoFinalTxt(rutaTxt), _
            vbInformation, "Buscar correos"
 
 Salir:

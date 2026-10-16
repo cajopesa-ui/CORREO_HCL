@@ -104,10 +104,15 @@ a mano desde la web, las tildes podrían verse mal; es mejor importar los `.bas`
 ### 4.1 Leer la bandeja de entrada
 
 1. Ve a la hoja **Bandeja** y pulsa **Leer bandeja de entrada**.
-2. La primera vez se conectará con Notes:
+2. **¿Cuántos correos?** Escribe el número máximo (se empieza por los más recientes). Se propone `MAX_CORREOS` (100) y después el último número que escribiste.
+3. **¿Contenido completo?**
+   - **No** → *resumen*: solo la hoja, como siempre (extracto de 200 caracteres).
+   - **Sí** → *completo*: la hoja como siempre **y además** un archivo `.txt` con el texto entero de cada correo (ver [4.10](#410-contenido-completo-en-un-txt)).
+   - **Cancelar** → no se lee nada.
+4. Si elegiste *completo*, se abre la ventana **Guardar como** de Windows para que elijas carpeta y nombre del `.txt`.
+5. La primera vez se conectará con Notes:
    - Si Notes está abierto y tiene activada la opción de compartir la contraseña, entra directamente.
    - Si no, te pedirá la **contraseña de Notes** (en una ventana de Notes o de Excel).
-3. Se mostrarán los **100 correos más recientes** (cambia `MAX_CORREOS` en `modConfiguracion` si quieres más o menos).
 
 | A Fecha | B Remitente | C Asunto | D Extracto | E Nº adjuntos | F ID (no tocar) | G Carpeta | H Leído | I Mover a | J Resultado |
 |---|---|---|---|---|---|---|---|---|---|
@@ -196,7 +201,7 @@ Para usar los botones, **primero haz clic en la fila de la carpeta**:
 
 | Botón | Qué hace |
 |---|---|
-| **Leer carpeta** | Copia sus correos a la hoja *Bandeja*. Pregunta si incluir las **subcarpetas** y si quieres solo los **últimos N días**. Máximo `MAX_CORREOS_CARPETA` (500). |
+| **Leer carpeta** | Copia sus correos a la hoja *Bandeja*. Pregunta si incluir las **subcarpetas**, si quieres solo los **últimos N días**, **cuántos correos** como máximo (se propone 500) y si los quieres en **resumen o completos** (`.txt`). |
 | **Crear carpeta / subcarpeta** | Crea una carpeta **dentro de la seleccionada**. Sin selección, la crea en el primer nivel. Puedes crear varios niveles de golpe: `Facturas\2026`. |
 | **Renombrar carpeta** | Cambia el nombre. Sus subcarpetas la siguen. Los correos no se tocan. |
 | **Eliminar carpeta** | Elimina la carpeta **y sus subcarpetas**. Antes te pregunta si quieres pasar sus correos a la Bandeja de entrada y te pide una segunda confirmación. **Los correos nunca se borran**: si no los pasas a la Bandeja, siguen en la vista *Todos los documentos* de Notes. |
@@ -222,7 +227,7 @@ Selecciona las filas en la hoja *Bandeja* (puedes usar **Ctrl + clic** o **Mayú
 
 ### 4.8 Buscar correos (hoja «Buscar»)
 
-Rellena solo los criterios que quieras (celdas amarillas) y pulsa **Buscar**:
+Rellena solo los criterios que quieras (celdas amarillas) y pulsa **Buscar**. Igual que al leer la bandeja, te preguntará **cuántos resultados** quieres como máximo y si los quieres en **resumen o completos** (`.txt`).
 
 | Criterio | Ejemplo | Nota |
 |---|---|---|
@@ -232,7 +237,7 @@ Rellena solo los criterios que quieras (celdas amarillas) y pulsa **Buscar**:
 | Carpeta | *(desplegable)* | **Vacía = busca en todas**: Bandeja de entrada, Enviados y todas tus carpetas. |
 | Incluir subcarpetas | `Sí` / `No` | Solo cuenta si eliges una carpeta. |
 
-Los resultados aparecen en la hoja *Bandeja* (máximo `MAX_CORREOS_CARPETA`), ordenados del más reciente al más antiguo, y desde ahí puedes moverlos, copiarlos, marcarlos o guardar sus adjuntos. **Limpiar criterios** vacía las celdas.
+Los resultados aparecen en la hoja *Bandeja*, ordenados del más reciente al más antiguo, y desde ahí puedes moverlos, copiarlos, marcarlos o guardar sus adjuntos. **Limpiar criterios** vacía las celdas.
 
 > Buscar texto dentro del **cuerpo** de miles de correos puede tardar varios minutos. La barra de estado de Excel (abajo) muestra el progreso.
 
@@ -258,7 +263,48 @@ Pulsa **Aplicar reglas a la Bandeja**:
 
 Las reglas se revisan **de arriba abajo**: si un correo cumple varias, manda la primera.
 
-### 4.10 Actualizar desde una versión anterior
+### 4.10 Contenido completo en un .txt
+
+Al leer la bandeja, una carpeta o al buscar, si respondes **Sí** a «¿contenido completo?» se crea un `.txt`
+(en **UTF-8**, con tildes y ñ correctas) con esta estructura, pensada para que la lea una persona **o un programa / una IA**:
+
+```
+=== EXPORTACIÓN HCL NOTES ===
+Fecha exportación: 2026-10-16 10:30
+Usuario: Juan Pérez
+Origen: Bandeja de entrada
+Nº correos: 25
+Límite alcanzado: No
+Formato: cada correo va entre '### CORREO n DE N ###' y '### FIN CORREO n ###'.
+         El cuerpo va entre '--- CUERPO ---' y '--- FIN CUERPO ---'.
+         Fechas en formato AAAA-MM-DD hh:mm. Orden: del más reciente al más antiguo.
+==============================
+
+### CORREO 1 DE 25 ###
+ID: 8A3F0C...C21
+Fecha: 2026-10-15 09:12
+De: Ana López <ana@acme.com>
+Para: Juan Pérez; ventas@miempresa.com
+CC: Jefe Ventas
+Asunto: Presupuesto octubre
+Carpeta: Bandeja de entrada
+Leído: Sí
+Adjuntos (2): presupuesto.pdf; logo.png
+--- CUERPO ---
+Hola Juan,
+
+Te adjunto el presupuesto...
+--- FIN CUERPO ---
+### FIN CORREO 1 ###
+```
+
+- Los correos van en el **mismo orden que en la hoja** (más recientes primero).
+- Las etiquetas (`De:`, `Para:`, `Asunto:`…) son siempre las mismas y cada una ocupa una sola línea.
+- El cuerpo conserva sus saltos de línea. Si alguna línea del cuerpo empezase por `### ` o `--- `, se le añade un espacio delante para que no se confunda con las marcas.
+- Los adjuntos **no** van dentro del `.txt` (solo sus nombres). Para guardarlos usa *Guardar adjuntos*.
+- Los correos en formato web (HTML) se convierten a texto antes de exportarlos.
+
+### 4.11 Actualizar desde una versión anterior
 
 Si ya tenías el libro montado con una versión anterior:
 
@@ -276,8 +322,8 @@ Todo lo que puedes ajustar está en el módulo **`modConfiguracion`**:
 | Constante | Para qué sirve | Valor por defecto |
 |---|---|---|
 | `HOJA_BANDEJA`, `HOJA_ENVIAR`, `HOJA_CARPETAS`, `HOJA_BUSCAR`, `HOJA_REGLAS` | Nombres de las hojas | `"Bandeja"`, `"Enviar"`, `"Carpetas"`, `"Buscar"`, `"Reglas"` |
-| `MAX_CORREOS` | Nº máximo de correos al leer la Bandeja de entrada | `100` |
-| `MAX_CORREOS_CARPETA` | Nº máximo de correos al leer una carpeta o buscar | `500` |
+| `MAX_CORREOS` | Nº de correos que se **propone** al leer la Bandeja de entrada | `100` |
+| `MAX_CORREOS_CARPETA` | Nº de correos que se **propone** al leer una carpeta o buscar | `500` |
 | `CARPETA_BANDEJA` / `CARPETA_ENVIADOS` | Cómo se ven en Excel las carpetas del sistema | `"Bandeja de entrada"` / `"Enviados"` |
 | `LONGITUD_EXTRACTO` | Caracteres del cuerpo que se copian | `200` |
 | `SERVIDOR_CORREO` / `ARCHIVO_CORREO` | Ubicación del buzón si la detección automática falla | `""` (automático) |
@@ -353,7 +399,7 @@ Algunos correos en formato HTML/MIME no exponen el texto de forma sencilla. El r
 
 ### Va muy lento
 
-Reduce `MAX_CORREOS` o `MAX_CORREOS_CARPETA` en `modConfiguracion`. Leer cientos de correos de un servidor remoto lleva su tiempo.
+Pide menos correos en la pregunta «¿Cuántos correos?». Leer cientos de correos de un servidor remoto lleva su tiempo.
 Al buscar, usa el filtro de fechas o elige una carpeta concreta: buscar texto en el cuerpo de todo el buzón es lo más lento.
 
 ### La columna «Mover a» no tiene desplegable / no sale una carpeta nueva

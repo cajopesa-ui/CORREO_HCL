@@ -246,7 +246,7 @@ Public Function PrepararHojaBuscar() As Worksheet
 
     ws.Cells(FILA_BUS_SUBCARPETAS + 2, 1).Value = _
         "Nota: buscar texto en el cuerpo de muchos correos puede tardar. " & _
-        "Se muestran como máximo " & MAX_CORREOS_CARPETA & " resultados."
+        "Al pulsar 'Buscar' eliges cuántos resultados quieres y si los quieres completos (.txt)."
     ws.Cells(FILA_BUS_SUBCARPETAS + 2, 1).Font.Italic = True
 
     ' Desplegables: Sí/No y lista de carpetas (si ya existe)

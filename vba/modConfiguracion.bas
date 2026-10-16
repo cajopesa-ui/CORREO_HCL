@@ -20,7 +20,9 @@ Public Const HOJA_REGLAS As String = "Reglas"     ' Reglas de archivado automáti
 Public Const HOJA_LISTAS As String = "Listas"     ' Hoja OCULTA con las opciones de los desplegables
 
 '--- Lectura de la bandeja de entrada -----------------------------------------
-' Número máximo de correos que se leen (empezando por los más recientes).
+' Número de correos que se PROPONE leer (empezando por los más recientes).
+' Al pulsar el botón puedes cambiarlo; el último número que escribas se
+' recuerda mientras el libro esté abierto.
 ' Si tienes miles de correos, un número alto hará que tarde mucho.
 Public Const MAX_CORREOS As Long = 100
 
@@ -28,8 +30,9 @@ Public Const MAX_CORREOS As Long = 100
 Public Const LONGITUD_EXTRACTO As Long = 200
 
 '--- Lectura de carpetas y búsquedas ------------------------------------------
-' Máximo de correos que se copian a la hoja al leer una carpeta (con sus
-' subcarpetas) o al buscar. Las carpetas grandes pueden tardar bastante.
+' Número de correos que se PROPONE al leer una carpeta (con sus subcarpetas)
+' o al buscar. También se puede cambiar al pulsar el botón.
+' Las carpetas grandes pueden tardar bastante.
 Public Const MAX_CORREOS_CARPETA As Long = 500
 
 '--- Carpetas del sistema -----------------------------------------------------
