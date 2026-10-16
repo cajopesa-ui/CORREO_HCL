@@ -298,7 +298,7 @@ Te adjunto el presupuesto...
 
 - Los correos van en el **mismo orden que en la hoja** (más recientes primero).
 - Las etiquetas (`De:`, `Asunto:`…) son siempre las mismas y cada una ocupa una sola línea.
-- Los destinatarios (**Para** y **CC**) **no se exportan**, porque suelen ser listas muy largas.
+- Los destinatarios (**Para** y **CC**) **no se exportan**, porque suelen ser listas muy largas. Tampoco los de los correos **reenviados o respondidos** que Notes copia dentro del cuerpo (las líneas `Para:`, `cc:`, `To:`… y su continuación).
 - El cuerpo conserva sus saltos de línea. Si alguna línea del cuerpo empezase por `### ` o `--- `, se le añade un espacio delante para que no se confunda con las marcas.
 - Los adjuntos **no** van dentro del `.txt` (solo sus nombres). Para guardarlos usa *Guardar adjuntos*.
 - Los correos en formato web (HTML) se convierten a texto antes de exportarlos.

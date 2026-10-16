@@ -374,7 +374,7 @@ Private Function BloqueCorreo(ByVal sesion As Object, ByVal doc As Object, _
     t = t & "Leído: " & TextoLeido(doc) & vbCrLf
     t = t & "Adjuntos (" & numAdjuntos & "): " & adjuntos & vbCrLf
     t = t & "--- CUERPO ---" & vbCrLf
-    t = t & ProtegerCuerpo(TextoCuerpo(doc)) & vbCrLf
+    t = t & ProtegerCuerpo(QuitarDestinatarios(TextoCuerpo(doc))) & vbCrLf
     t = t & "--- FIN CUERPO ---" & vbCrLf
 
     BloqueCorreo = t
@@ -459,6 +459,80 @@ Private Function UnaLinea(ByVal texto As String) As String
     texto = Replace(texto, vbCr, " ")
     texto = Replace(texto, vbLf, " ")
     UnaLinea = Trim$(texto)
+End Function
+
+
+'------------------------------------------------------------------------------
+' QuitarDestinatarios: en los correos REENVIADOS o RESPONDIDOS, Notes copia
+' dentro del cuerpo la cabecera del correo original, con listas enormes de
+' destinatarios. Esta función quita esas líneas "Para:", "cc:", "To:"... y
+' las líneas siguientes que sigan siendo direcciones.
+'
+'   De: J.Regional RRHH/AEAT/ES          <- se queda
+'   Para: Deleg.Especial/AEAT/ES@AEAT,   <- se quita
+'   AEAT/ES@AEAT, J.Regional...          <- se quita (continúa la lista)
+'   Fecha: 16/10/2026 09:30              <- se queda (otra cabecera: fin de la lista)
+'------------------------------------------------------------------------------
+Private Function QuitarDestinatarios(ByVal texto As String) As String
+    Dim lineas As Variant
+    Dim linea As String
+    Dim resultado As String
+    Dim saltando As Boolean      ' True mientras estamos dentro de una lista
+    Dim i As Long
+
+    texto = Replace(texto, vbCrLf, vbLf)
+    texto = Replace(texto, vbCr, vbLf)
+    lineas = Split(texto, vbLf)
+
+    For i = LBound(lineas) To UBound(lineas)
+        linea = lineas(i)
+
+        If EsEtiqueta(linea, "|para|to|cc|cco|bcc|copia|copia oculta|") Then
+            saltando = True                       ' Empieza una lista: la quitamos
+        ElseIf saltando Then
+            ' La lista termina con una línea vacía, con otra cabecera
+            ' (De:, Fecha:, Asunto:...) o con una línea que ya no parece
+            ' una lista de direcciones.
+            If Len(Trim$(linea)) = 0 Or _
+               EsEtiqueta(linea, "|de|from|fecha|date|asunto|subject|enviado|sent|enviado el|") Or _
+               Not PareceDirecciones(linea) Then
+                saltando = False
+            End If
+        End If
+
+        If Not saltando Then resultado = resultado & linea & vbLf
+    Next i
+
+    ' Quitamos el último salto de línea que hemos añadido
+    If Len(resultado) > 0 Then resultado = Left$(resultado, Len(resultado) - 1)
+    QuitarDestinatarios = resultado
+End Function
+
+
+'------------------------------------------------------------------------------
+' EsEtiqueta: True si la línea empieza por una de las etiquetas de la lista
+' seguida de ":" (sin distinguir mayúsculas). La lista va así: "|para|cc|".
+'------------------------------------------------------------------------------
+Private Function EsEtiqueta(ByVal linea As String, ByVal lista As String) As Boolean
+    Dim posicion As Long
+    Dim etiqueta As String
+
+    linea = LTrim$(linea)
+    posicion = InStr(linea, ":")
+    If posicion < 2 Or posicion > 15 Then Exit Function   ' Las etiquetas son cortas
+
+    etiqueta = LCase$(Trim$(Left$(linea, posicion - 1)))
+    EsEtiqueta = InStr(lista, "|" & etiqueta & "|") > 0
+End Function
+
+
+'------------------------------------------------------------------------------
+' PareceDirecciones: True si la línea parece la continuación de una lista de
+' destinatarios (tiene @ o / o acaba en coma).
+'------------------------------------------------------------------------------
+Private Function PareceDirecciones(ByVal linea As String) As Boolean
+    linea = Trim$(linea)
+    PareceDirecciones = InStr(linea, "@") > 0 Or InStr(linea, "/") > 0 Or Right$(linea, 1) = ","
 End Function
 
 
