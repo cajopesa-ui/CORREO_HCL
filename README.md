@@ -10,6 +10,7 @@ Macros de Excel que se conectan a **HCL Notes** (antes Lotus Notes) para:
 - 📂 **Leer carpetas completas** (con sus subcarpetas) y **buscar** en todo el buzón por texto, remitente y fechas.
 - 🤖 **Reglas de archivado**: mueve automáticamente los correos de la Bandeja de entrada según el remitente, el asunto…
 - ✉️ **Marcar como leído / no leído**.
+- ❓ **Ayuda interactiva** dentro del libro: hoja *Ayuda* con índice, pasos y ejemplos, botón *? Ayuda de esta hoja*, notas en los encabezados y visita guiada.
 - 🗂️ **Clasificar por temas**: guarda los correos en carpetas dentro de *Clasificacion nueva*, con la clasificación que prepara Claude o con palabras clave.
 
 El código está muy comentado en español y pensado para quien empieza con VBA.
@@ -44,6 +45,7 @@ vba/
 ├── modBuscar.bas          ← leer una carpeta completa y buscar correos
 ├── modReglas.bas          ← reglas de archivado automático
 ├── modClasificar.bas      ← clasificación por temas (Claude o palabras clave)
+├── modAyuda.bas           ← ayuda interactiva (hoja Ayuda, notas, visita guiada)
 └── modPreparar.bas        ← macro PrepararLibro (crea hojas y botones)
 ```
 
@@ -67,8 +69,8 @@ a mano desde la web, las tildes podrían verse mal; es mejor importar los `.bas`
 2. Pulsa **Alt + F11** para abrir el editor de VBA.
 3. En el menú: **Archivo > Importar archivo…** (o *File > Import File…*).
 4. Selecciona `modConfiguracion.bas` y pulsa **Abrir**.
-5. Repite el paso 3–4 con **cada uno** de los 11 archivos `.bas` de la carpeta `vba`.
-6. En el panel izquierdo (*Explorador de proyectos*) verás una carpeta **Módulos** con los 11 módulos.
+5. Repite el paso 3–4 con **cada uno** de los 12 archivos `.bas` de la carpeta `vba`.
+6. En el panel izquierdo (*Explorador de proyectos*) verás una carpeta **Módulos** con los 12 módulos.
 7. *(Recomendado)* Menú **Depuración > Compilar VBAProject**. Si no sale ningún mensaje, todo está bien.
 
 ### 3.3 Guardar como libro con macros (.xlsm)
@@ -81,7 +83,8 @@ a mano desde la web, las tildes podrían verse mal; es mejor importar los `.bas`
 ### 3.4 Preparar las hojas y los botones (automático)
 
 1. Pulsa **Alt + F8**, elige **PrepararLibro** y pulsa **Ejecutar**.
-2. Se crearán:
+2. Se crearán (el libro se abre en la hoja **Ayuda**):
+   - **Ayuda** (la primera): índice con enlaces y, para cada tema, para qué sirve, los pasos y un ejemplo. Arriba hay un desplegable *«¿Qué quieres hacer?»* y los botones *Ver los pasos de este tema*, *Llévame a la hoja* y *Visita guiada por las hojas*.
    - **Bandeja**: correos leídos. Botones *Leer bandeja de entrada*, *Mover a carpeta*, *Copiar a carpeta*, *Marcar como leído*, *Marcar como no leído*, *Guardar adjuntos*, *Enviar correos* y *Conectar a Notes*.
    - **Enviar**: correos para enviar, con una fila de ejemplo. Botones *Enviar correos* y *Conectar a Notes*.
    - **Carpetas**: tu árbol de carpetas. Botones *Actualizar carpetas*, *Leer carpeta*, *Crear carpeta / subcarpeta*, *Renombrar carpeta*, *Eliminar carpeta*, *Crear carpetas de la lista*, *Guardar adjuntos de la carpeta* y *Conectar a Notes*.
@@ -348,12 +351,20 @@ Hay **dos formas** de obtener la clasificación. Las dos terminan en la hoja **C
 - Por defecto **copia**: el correo sigue también en la Bandeja de entrada. Si un día prefieres **mover**, pon `CLASIFICACION_MUEVE = True` en `modConfiguracion`.
 - Si no te gusta el resultado, borra la carpeta *Clasificacion nueva* desde la hoja *Carpetas* (sin pasar los correos a la Bandeja, porque siguen allí): no se pierde nada.
 
-### 4.12 Actualizar desde una versión anterior
+### 4.12 Ayuda interactiva
+
+- **Hoja Ayuda**: elige en la celda amarilla qué quieres hacer y pulsa **Ver los pasos de este tema** (salta a su explicación con ejemplo) o **Llévame a la hoja** (te abre la hoja correcta y te recuerda los pasos en una ventana). También puedes hacer clic en cualquier tema del índice.
+- **Botón «? Ayuda de esta hoja»** en todas las hojas: explica qué puedes hacer en la hoja en la que estás.
+- **Notas en los encabezados**: pasa el ratón por encima de un encabezado (el triangulito rojo de la esquina) y verás qué poner y un ejemplo.
+- **Visita guiada por las hojas**: recorre el libro hoja a hoja con una explicación de cada una.
+- Todos los textos están en el módulo `modAyuda` (procedimiento `CargarTemas`). Si los cambias, vuelve a ejecutar **PrepararLibro**.
+
+### 4.13 Actualizar desde una versión anterior
 
 Si ya tenías el libro montado con una versión anterior:
 
 1. **Alt + F11**. En el panel izquierdo, clic derecho en **cada módulo** que ya tengas (todos los que empiezan por `mod`) > *Quitar…* > **No** (no hace falta exportarlos).
-2. **Archivo > Importar archivo** e importa los **11** `.bas` de la carpeta `vba`.
+2. **Archivo > Importar archivo** e importa los **12** `.bas` de la carpeta `vba`.
 3. **Depuración > Compilar VBAProject**.
 4. **Alt + F8 > PrepararLibro > Ejecutar**. Crea las hojas nuevas, mueve los botones de la hoja *Bandeja* a la columna L y borra el botón antiguo *Desconectar de Notes*. Tus datos no se tocan.
 

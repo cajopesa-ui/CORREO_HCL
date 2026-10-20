@@ -17,9 +17,10 @@ Public Const HOJA_ENVIAR As String = "Enviar"     ' Hoja con los correos a envia
 Public Const HOJA_CARPETAS As String = "Carpetas" ' Árbol de carpetas de tu buzón
 Public Const HOJA_BUSCAR As String = "Buscar"     ' Criterios de búsqueda
 Public Const HOJA_REGLAS As String = "Reglas"     ' Reglas de archivado automático
-Public Const HOJA_LISTAS As String = "Listas"
+Public Const HOJA_LISTAS As String = "Listas"     ' Hoja OCULTA con las opciones de los desplegables
 Public Const HOJA_CLASIFICACION As String = "Clasificacion"     ' Revisión de la clasificación
-Public Const HOJA_PALABRAS As String = "Palabras clave"         ' Reglas de la clasificación automática     ' Hoja OCULTA con las opciones de los desplegables
+Public Const HOJA_PALABRAS As String = "Palabras clave"         ' Reglas de la clasificación automática
+Public Const HOJA_AYUDA As String = "Ayuda"       ' Ayuda interactiva con ejemplos (primera hoja)
 
 '--- Lectura de la bandeja de entrada -----------------------------------------
 ' Número de correos que se PROPONE leer (empezando por los más recientes).

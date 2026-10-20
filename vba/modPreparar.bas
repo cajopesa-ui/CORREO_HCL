@@ -34,6 +34,7 @@ Public Sub PrepararLibro()
     Dim wsBuscar As Worksheet
     Dim wsReglas As Worksheet
     Dim wsClasif As Worksheet
+    Dim wsAyuda As Worksheet
 
     On Error GoTo ManejoError
 
@@ -89,6 +90,22 @@ Public Sub PrepararLibro()
     CrearBoton wsClasif, BOTONES_CLASIF, 3, "Aplicar clasificación", "AplicarClasificacion"
     CrearBoton wsClasif, BOTONES_CLASIF, 4, TEXTO_CONECTAR, "ConectarDesconectarNotes"
 
+    ' --- Ayuda: botón "? Ayuda de esta hoja" en cada hoja ------------------------
+    CrearBoton wsBandeja, BOTONES_BANDEJA, 9, "? Ayuda de esta hoja", "AyudaHoja"
+    CrearBoton wsEnviar, BOTONES_ENVIAR, 3, "? Ayuda de esta hoja", "AyudaHoja"
+    CrearBoton wsCarpetas, BOTONES_CARPETAS, 9, "? Ayuda de esta hoja", "AyudaHoja"
+    CrearBoton wsBuscar, BOTONES_BUSCAR, 4, "? Ayuda de esta hoja", "AyudaHoja"
+    CrearBoton wsReglas, BOTONES_REGLAS, 3, "? Ayuda de esta hoja", "AyudaHoja"
+    CrearBoton wsClasif, BOTONES_CLASIF, 5, "? Ayuda de esta hoja", "AyudaHoja"
+    CrearBoton ObtenerHoja(HOJA_PALABRAS), 6, 1, "? Ayuda de esta hoja", "AyudaHoja"
+
+    ' --- Hoja Ayuda (la primera del libro) y notas en los encabezados -----------
+    Set wsAyuda = PrepararHojaAyuda()
+    CrearBoton wsAyuda, 3, 1, "Ver los pasos de este tema", "AyudaVerPasos"
+    CrearBoton wsAyuda, 3, 2, "Llévame a la hoja", "AyudaIrAHoja"
+    CrearBoton wsAyuda, 3, 3, "Visita guiada por las hojas", "AyudaVisita"
+    PonerNotasAyuda
+
     ' Ponemos el texto correcto en el botón de conexión (por si ya estabas conectado)
     ActualizarBotonesConexion
 
@@ -102,8 +119,12 @@ Public Sub PrepararLibro()
         wsEnviar.Cells(2, COL_E_ADJUNTO).Value = ""
     End If
 
-    wsBandeja.Activate
+    wsAyuda.Activate
+    wsAyuda.Range("B4").Select
     MsgBox "¡Libro preparado!" & vbCrLf & vbCrLf & _
+           "Empieza por la hoja '" & HOJA_AYUDA & "': tiene un índice, pasos y ejemplos de todo. " & _
+           "En cada hoja tienes además el botón '? Ayuda de esta hoja' y notas en los encabezados " & _
+           "(pasa el ratón por encima)." & vbCrLf & vbCrLf & _
            "Hoja '" & HOJA_BANDEJA & "': lee, mueve, copia y marca correos." & vbCrLf & _
            "Hoja '" & HOJA_ENVIAR & "': rellena los correos y pulsa 'Enviar correos'." & vbCrLf & _
            "Hoja '" & HOJA_CARPETAS & "': pulsa 'Actualizar carpetas' para ver tu árbol de carpetas." & vbCrLf & _
