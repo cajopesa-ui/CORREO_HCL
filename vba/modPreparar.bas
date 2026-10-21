@@ -97,7 +97,8 @@ Public Sub PrepararLibro()
     CrearBoton wsBuscar, BOTONES_BUSCAR, 4, "? Ayuda de esta hoja", "AyudaHoja"
     CrearBoton wsReglas, BOTONES_REGLAS, 3, "? Ayuda de esta hoja", "AyudaHoja"
     CrearBoton wsClasif, BOTONES_CLASIF, 5, "? Ayuda de esta hoja", "AyudaHoja"
-    CrearBoton ObtenerHoja(HOJA_PALABRAS), 6, 1, "? Ayuda de esta hoja", "AyudaHoja"
+    CrearBoton ObtenerHoja(HOJA_PALABRAS), 6, 1, "Cargar palabras clave propuestas", "CargarPalabrasPropuestas"
+    CrearBoton ObtenerHoja(HOJA_PALABRAS), 6, 2, "? Ayuda de esta hoja", "AyudaHoja"
 
     ' --- Hoja Ayuda (la primera del libro) y notas en los encabezados -----------
     Set wsAyuda = PrepararHojaAyuda()
@@ -385,13 +386,14 @@ End Function
 
 
 '------------------------------------------------------------------------------
-' PrepararHojaPalabras: reglas de la clasificación automática. La primera vez
-' se rellena con la clasificación propuesta por Claude.
+' PrepararHojaPalabras: reglas de la clasificación automática.
+'   La primera vez (hoja vacía) se rellena con las reglas propuestas por Claude.
+'   Con forzar = True se cargan las propuestas aunque ya haya reglas (lo usa
+'   el botón "Cargar palabras clave propuestas").
 '------------------------------------------------------------------------------
-Public Sub PrepararHojaPalabras()
+Public Sub PrepararHojaPalabras(Optional ByVal forzar As Boolean = False)
     Dim ws As Worksheet
-    Dim reglas As Variant
-    Dim i As Long
+    Dim fila As Long
 
     Set ws = ObtenerHoja(HOJA_PALABRAS)
 
@@ -412,35 +414,77 @@ Public Sub PrepararHojaPalabras()
         .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Operator:=xlBetween, Formula1:="=ListaSiNo"
     End With
 
-    ' Primera vez: reglas de ejemplo con la clasificación propuesta.
-    ' IMPORTANTE: se revisan de arriba abajo y gana la PRIMERA que se cumple.
-    If Len(CStr(ws.Cells(2, COL_P_CARPETA).Value)) = 0 Then
-        reglas = Array( _
-            Array("RRHH\Sindicatos", "Asunto", "UCESHA;sindicat;huelga"), _
-            Array("RRHH", "Asunto", "URRH;jubil;teletrabajo;trabajo a distancia;tramitacion incidencias;turnos;vacunacion"), _
-            Array("Informatica\Cover Tamper HP", "Asunto o cuerpo", "tamper"), _
-            Array("Informatica\Obsolescencia", "Asunto", "obsolesc;obsoletos"), _
-            Array("Informatica\Despliegues CEAR", "Asunto", "CEAR;I26-;parches;BIOS;KillDisk"), _
-            Array("Informatica\Incidencias y Serman", "Asunto", "serman;averia;rotura;- incidencia -"), _
-            Array("Informatica\Zoom y telefonia", "Asunto", "zoom"), _
-            Array("Informatica\Impresoras y consumibles", "Asunto", "impresora;toner;MyQ;AIR MATERIAL;multifuncion"), _
-            Array("Informatica\Atencion al contribuyente", "Asunto", "ateneo;P@co;contribuyente;gestionar cita"), _
-            Array("Edificios y seguridad", "Asunto", "avisegu;seguridad;tecnicos de inforein"), _
-            Array("Informatica\Redes y comunicaciones", "Asunto", "switch;incomunicacion;internet;intranet;suministro electrico;extensores;de red"), _
-            Array("Informatica\Equipos NPT y material", "Asunto", "NPT;mochila;cargador;portatil;tabletas;dispositivos;equipo;bateria;base de conexion;sobremesa;incorporacion"), _
-            Array("Personal", "Remitente", "Carlos Jose"))
-        For i = LBound(reglas) To UBound(reglas)
-            ws.Cells(i + 2, COL_P_CARPETA).Value = reglas(i)(0)
-            ws.Cells(i + 2, COL_P_CAMPO).Value = reglas(i)(1)
-            ws.Cells(i + 2, COL_P_PALABRAS).Value = reglas(i)(2)
-            ws.Cells(i + 2, COL_P_ACTIVA).Value = "Sí"
-        Next i
+    If Not forzar And Len(CStr(ws.Cells(2, COL_P_CARPETA).Value)) > 0 Then Exit Sub
 
-        ws.Columns(COL_P_CARPETA).ColumnWidth = 40
-        ws.Columns(COL_P_CAMPO).ColumnWidth = 16
-        ws.Columns(COL_P_PALABRAS).ColumnWidth = 90
-        ws.Columns(COL_P_ACTIVA).ColumnWidth = 8
-    End If
+    ' Reglas propuestas por Claude a partir de los 624 correos de 2026.
+    ' IMPORTANTE: se revisan de arriba abajo y gana la PRIMERA que se cumple,
+    ' por eso las más concretas van antes que las más generales.
+    ws.Range(ws.Cells(2, COL_P_CARPETA), ws.Cells(200, COL_P_ACTIVA)).ClearContents
+    fila = 2
+    ReglaPalabras ws, fila, "Avisos automaticos", "Remitente", "aeatseguridadcorreo;aeat_seguridadproxy;blog de;zoom"
+    ReglaPalabras ws, fila, "Personal", "Remitente", "carlosjose.pemau;carlos jose;cajopesa;f08600ej"
+    ReglaPalabras ws, fila, "RRHH\Sindicatos", "Asunto", "UCESHA;sindicat;huelga"
+    ReglaPalabras ws, fila, "Campana de Renta 2025", "Asunto", "renta;r-irpf;PLL;EL206;HP-X2;plataforma de santa coloma;plataforma santa coloma;plataforma josep carner;plataforma de josep carner;plataformas de renta;participantes plataforma;calendario de apoyo;distribucion plataforma;comunicaciones a instalar por telefonica;obtencion de referencia"
+    ReglaPalabras ws, fila, "Formacion y cursos", "Asunto", "curso selectivo;CTH;IEF"
+    ReglaPalabras ws, fila, "Formacion y cursos", "Remitente", "instituto de estudios"
+    ReglaPalabras ws, fila, "Informatica\Seguridad de la informacion", "Asunto", "notificacion seguridad;fraudulent;pildora de seguridad;politica de seguridad;refuerzo de la seguridad;incidente de seguridad;anexos no han podido"
+    ReglaPalabras ws, fila, "RRHH", "Asunto", "URRH;jubil;teletrabajo;trabajo a distancia;tramitacion incidencias;turnos;vacunacion;vacaciones y sustitutos;calendario laboral;despedida;minuto de silencio;tacos calendario;cambios organizativos;informe de tareas"
+    ReglaPalabras ws, fila, "RRHH", "Remitente", "laboral risk"
+    ReglaPalabras ws, fila, "Informatica\Cover Tamper HP", "Asunto o cuerpo", "tamper"
+    ReglaPalabras ws, fila, "Informatica\Impresoras y consumibles\Sustitucion Kyocera", "Asunto", "kyocera;MFP;multifuncion;instalaciones pendientes letamendi;discos de nuevas impresoras;gestion del toner;cartuchos de toner antiguos"
+    ReglaPalabras ws, fila, "Informatica\Impresoras y consumibles\Sustitucion Kyocera", "Remitente", "kyocera;sabrina caldentey"
+    ReglaPalabras ws, fila, "Informatica\Obsolescencia", "Asunto", "obsolesc;obsoletos del edificio"
+    ReglaPalabras ws, fila, "Informatica\Inventario", "Asunto", "inventario;gestion activos;bases de conexion;caliente reservada;gestion de activos"
+    ReglaPalabras ws, fila, "Informatica\Despliegues CEAR", "Asunto", "CEAR;I26-;parches;BIOS;KillDisk;escritorio remoto;treesize;ER2016;access 64;er_npt"
+    ReglaPalabras ws, fila, "Informatica\Incidencias y Serman", "Asunto", "serman;averia;rotura;- incidencia -;incidencia 28;problemas aleatorios"
+    ReglaPalabras ws, fila, "Informatica\Zoom y telefonia", "Asunto", "zoom;llamadas salientes"
+    ReglaPalabras ws, fila, "Informatica\Impresoras y consumibles", "Asunto", "impresora;toner;MyQ;AIR MATERIAL;escaner;tambor"
+    ReglaPalabras ws, fila, "Informatica\Atencion al contribuyente", "Asunto", "ateneo;P@co;paco;contribuyente;cita;aplicacion opera;opera:;numero unico;kiosco;colas de;operador SAT;llamadas proactivas;atencion especial"
+    ReglaPalabras ws, fila, "Edificios y seguridad", "Asunto", "avisegu;seguridad;tecnicos de inforein;mobiliario"
+    ReglaPalabras ws, fila, "Informatica\Redes y comunicaciones", "Asunto", "switch;incomunicacion;internet;intranet;suministro electrico;extensores;de red;cisco;FTTH;fibra;wifi;consola NAC;iDPA;linea de AFR;(ISP;telefonos obsoletos"
+    ReglaPalabras ws, fila, "Informatica\Aplicaciones y servicios", "Asunto", "valora;correo web;herramientas de analisis;mailxaminer;colaboracion social;alta de coordinadores;SFU;servidor produccion;citrix;GENIO"
+    ReglaPalabras ws, fila, "Informatica\Equipos NPT y material", "Asunto", "NPT;mochila;cargador;portatil;tabletas;dispositivos;equipo;bateria;base de conexion;sobremesa;incorporacion;raton;auriculares;monitor;pantalla;candados;envio de;peticiones;peticion material;ordenadores;solicitud de informacion"
+
+    ws.Columns(COL_P_CARPETA).ColumnWidth = 45
+    ws.Columns(COL_P_CAMPO).ColumnWidth = 16
+    ws.Columns(COL_P_PALABRAS).ColumnWidth = 110
+    ws.Columns(COL_P_ACTIVA).ColumnWidth = 8
+End Sub
+
+
+'------------------------------------------------------------------------------
+' ReglaPalabras: escribe una regla en la hoja Palabras clave. (Uso interno)
+'------------------------------------------------------------------------------
+Private Sub ReglaPalabras(ByVal ws As Worksheet, ByRef fila As Long, ByVal carpeta As String, _
+                          ByVal campo As String, ByVal palabras As String)
+    ws.Cells(fila, COL_P_CARPETA).Value = carpeta
+    ws.Cells(fila, COL_P_CAMPO).Value = campo
+    ws.Cells(fila, COL_P_PALABRAS).Value = palabras
+    ws.Cells(fila, COL_P_ACTIVA).Value = "Sí"
+    fila = fila + 1
+End Sub
+
+
+'------------------------------------------------------------------------------
+' CargarPalabrasPropuestas  -> MACRO (botón de la hoja Palabras clave)
+' Sustituye las reglas de la hoja por las propuestas por Claude.
+'------------------------------------------------------------------------------
+Public Sub CargarPalabrasPropuestas()
+    On Error GoTo ManejoError
+
+    If MsgBox("Se van a SUSTITUIR todas las reglas de la hoja '" & HOJA_PALABRAS & "' " & _
+              "por las propuestas por Claude (20 carpetas, 23 reglas)." & vbCrLf & vbCrLf & _
+              "Si has añadido reglas tuyas, cópialas antes en otro sitio." & vbCrLf & vbCrLf & _
+              "¿Continuar?", vbQuestion + vbYesNo + vbDefaultButton2, "Palabras clave") = vbNo Then Exit Sub
+
+    PrepararHojaPalabras True
+    ObtenerHoja(HOJA_PALABRAS).Activate
+    MsgBox "Reglas cargadas. Ya puedes usar 'Clasificar con palabras clave' en la hoja '" & _
+           HOJA_CLASIFICACION & "'.", vbInformation, "Palabras clave"
+    Exit Sub
+
+ManejoError:
+    MostrarError "Cargar palabras clave", Err.Number, Err.Description
 End Sub
 
 

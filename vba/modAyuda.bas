@@ -203,7 +203,8 @@ Private Sub CargarTemas()
     '--------------------------------------------------------------------------
     Tema "Clasificar con palabras clave", HOJA_PALABRAS, "A2", _
          "Clasifica la Bandeja de entrada sin salir de tu PC, con las reglas de la hoja Palabras clave."
-    Paso "Revisa la hoja Palabras clave: carpeta, dónde buscar y palabras separadas por ; (punto y coma)."
+    Paso "Revisa la hoja Palabras clave: carpeta, dónde buscar y palabras separadas por ; (punto y coma). " & _
+         "El botón 'Cargar palabras clave propuestas' pone las reglas de Claude (20 carpetas)."
     Paso "En la hoja Clasificacion pulsa 'Clasificar con palabras clave' y di cuántos correos."
     Paso "Los que no cumplen ninguna regla salen como 'Sin clasificar' con Aplicar = No."
     Paso "Revisa la hoja y pulsa 'Aplicar clasificación'."
