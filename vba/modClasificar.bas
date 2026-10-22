@@ -14,8 +14,11 @@ Attribute VB_Name = "modClasificar"
 '          ID;Carpeta;Asunto (opcional, solo para que lo leas tú)
 '      ejemplo: 8A6F511905F202E4C1258E92002AC05D;RRHH;Jubilación voluntaria
 '
-'   B) ClasificarConReglas -> clasifica la Bandeja de entrada con las
-'      palabras clave de la hoja "Palabras clave" (sin salir de tu PC).
+'   B) ClasificarConReglas -> clasifica con las palabras clave de la hoja
+'      "Palabras clave" (sin salir de tu PC). Puede clasificar:
+'        - los correos que aparecen en la hoja "Bandeja" (lo último que hayas
+'          leído o buscado: una búsqueda por fechas, una carpeta...), o
+'        - los últimos N correos de la Bandeja de entrada de Notes.
 '
 ' Después:
 '   AplicarClasificacion -> crea las carpetas que falten y COPIA cada correo a
@@ -45,11 +48,17 @@ Public Sub ClasificarConReglas()
     Dim campos() As String
     Dim palabras() As Variant      ' Cada elemento: lista de palabras de esa regla
     Dim filasRegla() As Long
-    Dim carpeta As String
-    Dim motivo As String
     Dim clasificados As Long
     Dim sinClasificar As Long
+    Dim noEncontrados As Long
     Dim mimeAntes As Boolean
+    Dim desdeHoja As Boolean       ' True = correos de la hoja Bandeja
+    Dim wsBandeja As Worksheet
+    Dim filaB As Long
+    Dim ultimaB As Long
+    Dim enHoja As Long
+    Dim unid As String
+    Dim origen As VbMsgBoxResult
 
     On Error GoTo ManejoError
 
@@ -82,29 +91,44 @@ Public Sub ClasificarConReglas()
         Exit Sub
     End If
 
-    ' --- 2) ¿Cuántos correos? ----------------------------------------------------
-    respuesta = Application.InputBox( _
-        Prompt:="¿Cuántos correos de la Bandeja de entrada quieres clasificar?" & vbCrLf & vbCrLf & _
-                "(Se empieza por los más recientes.)", _
-        Title:="Clasificar con palabras clave", Default:=MAX_CORREOS, Type:=1)
-    If VarType(respuesta) = vbBoolean Then Exit Sub
-    If respuesta < 1 Or respuesta <> Int(respuesta) Then
-        MsgBox "Escribe un número entero mayor que 0.", vbExclamation, "Clasificar"
-        Exit Sub
-    End If
-    maximo = CLng(respuesta)
+    ' --- 2) ¿Qué correos clasificamos? -----------------------------------------
+    ' Contamos los correos que hay ahora en la hoja Bandeja (filas con ID)
+    Set wsBandeja = PrepararHojaBandeja()
+    ultimaB = wsBandeja.Cells(wsBandeja.Rows.Count, COL_B_ID).End(xlUp).Row
+    For filaB = 2 To ultimaB
+        If Len(Trim$(CStr(wsBandeja.Cells(filaB, COL_B_ID).Value))) > 0 Then enHoja = enHoja + 1
+    Next filaB
 
-    ' --- 3) Recorremos la Bandeja de entrada -----------------------------------
+    If enHoja > 0 Then
+        origen = MsgBox("¿Qué correos quieres clasificar?" & vbCrLf & vbCrLf & _
+                        "  Sí        = los " & enHoja & " correo(s) que hay ahora en la hoja '" & HOJA_BANDEJA & "'" & vbCrLf & _
+                        "                 (lo último que leíste o buscaste)" & vbCrLf & _
+                        "  No        = los últimos de la Bandeja de entrada de Notes" & vbCrLf & _
+                        "  Cancelar = no hacer nada", _
+                        vbQuestion + vbYesNoCancel, "Clasificar con palabras clave")
+        If origen = vbCancel Then Exit Sub
+        desdeHoja = (origen = vbYes)
+    End If
+
+    ' Si es la Bandeja de entrada: ¿cuántos correos?
+    If Not desdeHoja Then
+        respuesta = Application.InputBox( _
+            Prompt:="¿Cuántos correos de la Bandeja de entrada de Notes quieres clasificar?" & vbCrLf & vbCrLf & _
+                    "(Se empieza por los más recientes.)", _
+            Title:="Clasificar con palabras clave", Default:=MAX_CORREOS, Type:=1)
+        If VarType(respuesta) = vbBoolean Then Exit Sub
+        If respuesta < 1 Or respuesta <> Int(respuesta) Then
+            MsgBox "Escribe un número entero mayor que 0.", vbExclamation, "Clasificar"
+            Exit Sub
+        End If
+        maximo = CLng(respuesta)
+    End If
+
+    ' --- 3) Conectamos y preparamos la hoja Clasificacion ---------------------
     Application.ScreenUpdating = False
     Application.StatusBar = "Conectando con HCL Notes..."
     Set sesion = ObtenerSesion()
     Set db = AbrirBaseCorreo()
-
-    Set vista = db.GetView("($Inbox)")
-    If vista Is Nothing Then
-        Err.Raise ERR_BASE_CORREO, "ClasificarConReglas", "No se encontró la Bandeja de entrada."
-    End If
-    vista.AutoUpdate = False
 
     ' Para poder leer el cuerpo de los correos en formato web (HTML)
     On Error Resume Next
@@ -114,32 +138,59 @@ Public Sub ClasificarConReglas()
 
     Set ws = PrepararHojaClasificacion()
     LimpiarHojaClasificacion ws
-
     fila = 2
-    Set doc = vista.GetLastDocument()
-    Do While Not doc Is Nothing And fila - 2 < maximo
-        Application.StatusBar = "Clasificando correo " & (fila - 1) & "..."
 
-        carpeta = ""
-        motivo = ""
-        For r = 1 To n
-            If CumplePalabras(doc, campos(r), palabras(r)) Then
-                carpeta = carpetas(r)
-                motivo = "Palabras clave, fila " & filasRegla(r)
-                Exit For            ' Gana la primera regla que se cumple
+    If desdeHoja Then
+        ' --- 4a) Los correos de la hoja Bandeja, en el mismo orden ---------------
+        For filaB = 2 To ultimaB
+            unid = Trim$(CStr(wsBandeja.Cells(filaB, COL_B_ID).Value))
+            If Len(unid) > 0 Then
+                Application.StatusBar = "Clasificando correo " & (fila - 1) & " de " & enHoja & "..."
+                Set doc = Nothing
+                On Error Resume Next
+                Set doc = db.GetDocumentByUNID(unid)
+                On Error GoTo ManejoError
+
+                If doc Is Nothing Then
+                    noEncontrados = noEncontrados + 1    ' Borrado desde que se leyó
+                Else
+                    r = PrimeraRegla(doc, n, campos, palabras)
+                    If r > 0 Then
+                        EscribirFilaClasificacion ws, fila, sesion, doc, carpetas(r), "Palabras clave, fila " & filasRegla(r)
+                        clasificados = clasificados + 1
+                    Else
+                        EscribirFilaClasificacion ws, fila, sesion, doc, "", ""
+                        sinClasificar = sinClasificar + 1
+                    End If
+                    fila = fila + 1
+                End If
             End If
-        Next r
-
-        EscribirFilaClasificacion ws, fila, sesion, doc, carpeta, motivo
-        If Len(carpeta) > 0 Then
-            clasificados = clasificados + 1
-        Else
-            sinClasificar = sinClasificar + 1
+        Next filaB
+    Else
+        ' --- 4b) Los últimos N de la Bandeja de entrada de Notes ----------------
+        Set vista = db.GetView("($Inbox)")
+        If vista Is Nothing Then
+            Err.Raise ERR_BASE_CORREO, "ClasificarConReglas", "No se encontró la Bandeja de entrada."
         End If
+        vista.AutoUpdate = False
 
-        fila = fila + 1
-        Set doc = vista.GetPrevDocument(doc)
-    Loop
+        Set doc = vista.GetLastDocument()
+        Do While Not doc Is Nothing And fila - 2 < maximo
+            Application.StatusBar = "Clasificando correo " & (fila - 1) & "..."
+
+            r = PrimeraRegla(doc, n, campos, palabras)
+            If r > 0 Then
+                EscribirFilaClasificacion ws, fila, sesion, doc, carpetas(r), "Palabras clave, fila " & filasRegla(r)
+                clasificados = clasificados + 1
+            Else
+                EscribirFilaClasificacion ws, fila, sesion, doc, "", ""
+                sinClasificar = sinClasificar + 1
+            End If
+
+            fila = fila + 1
+            Set doc = vista.GetPrevDocument(doc)
+        Loop
+    End If
 
     On Error Resume Next
     sesion.ConvertMime = mimeAntes
@@ -148,8 +199,10 @@ Public Sub ClasificarConReglas()
     Application.StatusBar = False
     Application.ScreenUpdating = True
     ws.Activate
-    MsgBox "Clasificados: " & clasificados & vbCrLf & _
-           "Sin clasificar: " & sinClasificar & " (marcados con Aplicar = No)" & vbCrLf & vbCrLf & _
+    MsgBox IIf(desdeHoja, "Correos de la hoja '" & HOJA_BANDEJA & "'.", "Últimos correos de la Bandeja de entrada.") & vbCrLf & vbCrLf & _
+           "Clasificados: " & clasificados & vbCrLf & _
+           "Sin clasificar: " & sinClasificar & " (marcados con Aplicar = No)" & vbCrLf & _
+           IIf(noEncontrados > 0, "Ya no están en el buzón: " & noEncontrados & vbCrLf, "") & vbCrLf & _
            "Revisa la hoja '" & HOJA_CLASIFICACION & "': puedes cambiar la carpeta o poner " & _
            "Aplicar = No. Cuando esté a tu gusto, pulsa 'Aplicar clasificación'.", _
            vbInformation, "Clasificar con palabras clave"
@@ -392,6 +445,22 @@ End Sub
 '==============================================================================
 ' FUNCIONES INTERNAS
 '==============================================================================
+
+'------------------------------------------------------------------------------
+' PrimeraRegla: nº de la primera regla que cumple el correo (0 = ninguna).
+' Las reglas se revisan de arriba abajo; gana la primera.
+'------------------------------------------------------------------------------
+Private Function PrimeraRegla(ByVal doc As Object, ByVal n As Long, _
+                              ByRef campos() As String, ByRef palabras() As Variant) As Long
+    Dim r As Long
+
+    For r = 1 To n
+        If CumplePalabras(doc, campos(r), palabras(r)) Then
+            PrimeraRegla = r
+            Exit Function
+        End If
+    Next r
+End Function
 
 '------------------------------------------------------------------------------
 ' EscribirFilaClasificacion: escribe un correo en la hoja Clasificacion.

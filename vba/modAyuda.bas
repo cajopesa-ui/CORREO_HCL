@@ -202,16 +202,19 @@ Private Sub CargarTemas()
 
     '--------------------------------------------------------------------------
     Tema "Clasificar con palabras clave", HOJA_PALABRAS, "A2", _
-         "Clasifica la Bandeja de entrada sin salir de tu PC, con las reglas de la hoja Palabras clave."
+         "Clasifica sin salir de tu PC, con las reglas de la hoja Palabras clave, los correos de la hoja Bandeja " & _
+         "(una búsqueda, una carpeta...) o los últimos de la Bandeja de entrada."
     Paso "Revisa la hoja Palabras clave: carpeta, dónde buscar y palabras separadas por ; (punto y coma). " & _
          "El botón 'Cargar palabras clave propuestas' pone las reglas de Claude (20 carpetas)."
-    Paso "En la hoja Clasificacion pulsa 'Clasificar con palabras clave' y di cuántos correos."
+    Paso "En la hoja Clasificacion pulsa 'Clasificar con palabras clave'. Elige: Sí = los correos que hay en la hoja Bandeja " & _
+         "(lo último que leíste o buscaste, por ejemplo todo el año); No = los últimos N de la Bandeja de entrada."
     Paso "Los que no cumplen ninguna regla salen como 'Sin clasificar' con Aplicar = No."
     Paso "Revisa la hoja y pulsa 'Aplicar clasificación'."
     Ejemplo "Carpeta                        Buscar en   Palabras"
     Ejemplo "Informatica\Despliegues CEAR   Asunto      CEAR;I26-;parches;BIOS"
     Ejemplo "RRHH\Sindicatos                Asunto      UCESHA;sindicat;huelga"
     Ejemplo "No distingue mayúsculas ni tildes: 'vacunacion' encuentra 'VACUNACIÓN'."
+    Ejemplo "Todo 2026: hoja Buscar, Desde 01/01/2026 > Buscar > Clasificar con palabras clave > Sí"
 
     '--------------------------------------------------------------------------
     Tema "Si algo falla", HOJA_AYUDA, "A1", _

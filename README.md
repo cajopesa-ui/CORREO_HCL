@@ -342,7 +342,9 @@ Hay **dos formas** de obtener la clasificación. Las dos terminan en la hoja **C
 **B) Palabras clave (automática, sin salir de tu PC)**
 1. En la hoja **Palabras clave** (el botón **Cargar palabras clave propuestas** pone las 23 reglas que preparó Claude a partir de los correos de 2026, que aciertan en 612 de 624) cada fila es una regla: *carpeta*, *dónde buscar* (Asunto, Remitente, Cuerpo o Asunto o cuerpo), *palabras separadas por `;`* y *Activa*.
    Las reglas se revisan **de arriba abajo** y gana la **primera** que se cumple. No distinguen mayúsculas ni tildes.
-2. Pulsa **Clasificar con palabras clave** y di cuántos correos de la Bandeja quieres clasificar.
+2. Pulsa **Clasificar con palabras clave** y elige qué correos:
+   - **Sí** → los que hay ahora en la hoja **Bandeja** (lo último que leíste o buscaste). Así puedes clasificar una búsqueda por fechas (por ejemplo, todo 2026), por remitente o una carpeta entera.
+   - **No** → los últimos N de la **Bandeja de entrada** de Notes (te pregunta cuántos).
 3. Los que no cumplan ninguna regla salen como **Sin clasificar** con *Aplicar = No* (se quedan donde están).
 
 **Revisar y aplicar**
